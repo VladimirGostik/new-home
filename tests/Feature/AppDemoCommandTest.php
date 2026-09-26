@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 final class AppDemoCommandTest extends TestCase
 {
-    use RefreshDatabase;
+    // No RefreshDatabase: app:demo runs migrate:fresh itself, which SQLite refuses inside a transaction.
 
     public function test_app_demo_seeds_admin_user(): void
     {

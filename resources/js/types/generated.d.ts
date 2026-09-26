@@ -42,9 +42,26 @@ readonly current_password: string,
 readonly password: string,
 readonly password_confirmation: string,
 };
+export type CreateItemData = {
+readonly name: string,
+readonly note: string | null,
+readonly room_id: string | null,
+readonly unit_price: number | null,
+readonly quantity: number,
+readonly url: string | null,
+readonly assigned_user_id: string | null,
+readonly status: App.Enums.ItemStatus,
+readonly priority: App.Enums.ItemPriority,
+readonly photo_uuid: string | null,
+};
 export type CreateRoleData = {
 readonly name: string,
 readonly permissions: string[],
+};
+export type CreateRoomData = {
+readonly name: string,
+readonly description: string | null,
+readonly sort_order: number,
 };
 export type CreateUserData = {
 readonly name: string,
@@ -53,6 +70,39 @@ readonly password: string,
 readonly password_confirmation: string,
 readonly is_active: boolean,
 readonly roles: string[],
+};
+export type DashboardData = {
+readonly totals: App.Data.SpendSummaryData,
+readonly unassigned_count: number,
+readonly rooms: App.Data.SpendGroupData[],
+readonly people: App.Data.SpendGroupData[],
+};
+export type ItemIndexFilterData = {
+readonly search: string | null,
+readonly room: string | null,
+readonly assignee: string | null,
+readonly status: string | null,
+readonly priority: string | null,
+readonly per_page: number | null,
+};
+export type ItemListItemData = {
+readonly id: string,
+readonly name: string,
+readonly note: string | null,
+readonly room_id: string | null,
+readonly room_name: string | null,
+readonly unit_price: number | null,
+readonly quantity: number,
+readonly total_price: number | null,
+readonly url: string | null,
+readonly assigned_user_id: string | null,
+readonly assigned_user_name: string | null,
+readonly status: string,
+readonly priority: string,
+readonly photo_uuid: string | null,
+readonly photo_url: string | null,
+readonly photo_thumb_url: string | null,
+readonly created_at: string,
 };
 export type LanguageSwitchData = {
 readonly locale: string,
@@ -119,6 +169,9 @@ readonly password_confirmation: string,
 export type PasswordResetLinkData = {
 readonly email: string,
 };
+export type ReorderRoomsData = {
+readonly ids: string[],
+};
 export type RoleDetailData = {
 readonly id: string,
 readonly name: string,
@@ -137,8 +190,46 @@ readonly permissions_count: number,
 readonly users_count: number,
 readonly is_system: boolean,
 };
+export type RoomIndexFilterData = {
+readonly search: string | null,
+readonly per_page: number | null,
+};
+export type RoomListItemData = {
+readonly id: string,
+readonly name: string,
+readonly description: string | null,
+readonly sort_order: number,
+readonly created_at: string,
+readonly summary: App.Data.SpendSummaryData,
+};
+export type SpendGroupData = {
+readonly id: string | null,
+readonly name: string,
+readonly summary: App.Data.SpendSummaryData,
+};
+export type SpendSummaryData = {
+readonly items_count: number,
+readonly bought_count: number,
+readonly unpriced_count: number,
+readonly total: number,
+readonly bought_total: number,
+readonly remaining_total: number,
+};
 export type StoreTemporaryUploadData = {
 readonly file: File,
+};
+export type UpdateItemData = {
+readonly name: string,
+readonly note: string | null,
+readonly room_id: string | null,
+readonly unit_price: number | null,
+readonly quantity: number,
+readonly url: string | null,
+readonly assigned_user_id: string | null,
+readonly status: App.Enums.ItemStatus,
+readonly priority: App.Enums.ItemPriority,
+readonly photo_uuid: string | null,
+readonly remove_photo: boolean,
 };
 export type UpdateProfileData = {
 readonly name: string,
@@ -148,6 +239,11 @@ readonly locale: string,
 export type UpdateRoleData = {
 readonly name: string,
 readonly permissions: string[],
+};
+export type UpdateRoomData = {
+readonly name: string,
+readonly description: string | null,
+readonly sort_order: number,
 };
 export type UpdateUserData = {
 readonly name: string,
@@ -175,6 +271,8 @@ readonly created_at: string,
 };
 }
 namespace Enums {
+export type ItemPriority = "low" | "medium" | "high";
+export type ItemStatus = "planned" | "bought";
 export type SupportedLanguage = "sk" | "en";
 }
 }

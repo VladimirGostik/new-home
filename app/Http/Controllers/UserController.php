@@ -30,7 +30,7 @@ final class UserController extends Controller
     ) {}
 
     #[Authorize('viewAny', User::class)]
-    #[NavItem(label: 'app.users', route: 'users.index', icon: 'UsersIcon', permission: 'view users', order: 20)]
+    #[NavItem(label: 'app.users', route: 'users.index', icon: 'UsersIcon', permission: 'view users', group: 'settings', order: 20)]
     public function index(Request $request): Response
     {
         $users = QueryBuilder::for(User::query()->with('roles'))
@@ -110,6 +110,11 @@ final class UserController extends Controller
     public function autocomplete(Request $request): JsonResponse
     {
         $q = trim((string) $request->query('q', ''));
+
+        // Mirrors AutocompleteInput: empty query = initial list, 1 char = nothing yet.
+        if (mb_strlen($q) === 1) {
+            return response()->json([]);
+        }
 
         $users = User::query()
             ->where('is_active', true)

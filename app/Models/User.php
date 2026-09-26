@@ -10,6 +10,7 @@ use Illuminate\Auth\Passwords\CanResetPassword as CanResetPasswordTrait;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -39,5 +40,11 @@ final class User extends Authenticatable
             ->logOnly(['name', 'email', 'locale', 'is_active'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
+    }
+
+    /** @return HasMany<Item, $this> */
+    public function assignedItems(): HasMany
+    {
+        return $this->hasMany(Item::class, 'assigned_user_id');
     }
 }

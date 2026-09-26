@@ -19,7 +19,7 @@ final class MediaController extends Controller
     public function __construct(private readonly MediaService $service) {}
 
     #[Authorize('viewAny', Media::class)]
-    #[NavItem(label: 'app.media', route: 'media.index', icon: 'PhotoIcon', permission: 'viewAny', policyModel: Media::class, order: 50)]
+    #[NavItem(label: 'app.media', route: 'media.index', icon: 'PhotoIcon', permission: 'viewAny', policyModel: Media::class, group: 'settings', order: 50)]
     public function index(MediaIndexFilterData $filter, Request $request): Response
     {
         $paginator = $this->service->index($filter)

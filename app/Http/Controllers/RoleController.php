@@ -27,7 +27,7 @@ final class RoleController extends Controller
     ) {}
 
     #[Authorize('viewAny', Role::class)]
-    #[NavItem(label: 'app.roles', route: 'roles.index', icon: 'ShieldCheckIcon', permission: 'view roles', order: 30)]
+    #[NavItem(label: 'app.roles', route: 'roles.index', icon: 'ShieldCheckIcon', permission: 'view roles', group: 'settings', order: 30)]
     public function index(Request $request): Response
     {
         $roles = QueryBuilder::for(Role::class)

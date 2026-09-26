@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Utils\SymbolOperators;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
@@ -19,7 +20,7 @@ final class UserFilterTest extends TestCase
     {
         parent::setUp();
 
-        $this->artisan('app:demo')->assertSuccessful();
+        $this->seed(DatabaseSeeder::class);
     }
 
     public function test_symbol_operators_parse_handles_not_equal(): void
@@ -75,6 +76,8 @@ final class UserFilterTest extends TestCase
 
         $this->assertContainsSqlFragment($sql, 'not exists');
 
+        User::factory()->create(['name' => 'Regular Eve'])->assignRole('user');
+
         $names = $this->fetchUserNames($admin, '/users?filter%5Brole%5D=%21%3D%3Aadmin&per_page=100');
 
         $this->assertNotContains('Admin', $names);
@@ -85,9 +88,12 @@ final class UserFilterTest extends TestCase
     {
         $admin = User::where('email', 'admin@example.com')->firstOrFail();
 
+        User::factory()->create(['name' => 'Regular Eve'])->assignRole('user');
+
         $names = $this->fetchUserNames($admin, '/users?filter%5Brole%5D=admin&per_page=100');
 
-        $this->assertSame(['Admin'], $names);
+        $this->assertEqualsCanonicalizing(User::role('admin')->pluck('name')->all(), $names);
+        $this->assertNotContains('Regular Eve', $names);
     }
 
     public function test_date_filter_supports_gte_operator(): void

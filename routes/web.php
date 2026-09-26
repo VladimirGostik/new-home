@@ -5,12 +5,14 @@ declare(strict_types=1);
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\NewPasswordController;
 use App\Http\Controllers\PasswordResetLinkController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\RoomController;
 use App\Http\Controllers\TemporaryUploadController;
 use App\Http\Controllers\UserController;
 use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
@@ -83,5 +85,27 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware([HandlePrecognitiveRequests::class])->group(function (): void {
         Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
         Route::put('/roles/{role}', [RoleController::class, 'update'])->name('roles.update');
+    });
+
+    Route::get('/rooms', [RoomController::class, 'index'])->name('rooms.index');
+    Route::get('/rooms/create', [RoomController::class, 'create'])->name('rooms.create');
+    Route::get('/rooms/{room}', [RoomController::class, 'show'])->name('rooms.show');
+    Route::get('/rooms/{room}/edit', [RoomController::class, 'edit'])->name('rooms.edit');
+    Route::put('/rooms/reorder', [RoomController::class, 'reorder'])->name('rooms.reorder');
+    Route::delete('/rooms/{room}', [RoomController::class, 'destroy'])->name('rooms.destroy');
+    Route::middleware([HandlePrecognitiveRequests::class])->group(function (): void {
+        Route::post('/rooms', [RoomController::class, 'store'])->name('rooms.store');
+        Route::put('/rooms/{room}', [RoomController::class, 'update'])->name('rooms.update');
+    });
+
+    Route::get('/items', [ItemController::class, 'index'])->name('items.index');
+    Route::get('/items/create', [ItemController::class, 'create'])->name('items.create');
+    Route::get('/my-items', [ItemController::class, 'mine'])->name('items.mine');
+    Route::get('/items/{item}/edit', [ItemController::class, 'edit'])->name('items.edit');
+    Route::patch('/items/{item}/status', [ItemController::class, 'toggleStatus'])->name('items.toggle-status');
+    Route::delete('/items/{item}', [ItemController::class, 'destroy'])->name('items.destroy');
+    Route::middleware([HandlePrecognitiveRequests::class])->group(function (): void {
+        Route::post('/items', [ItemController::class, 'store'])->name('items.store');
+        Route::put('/items/{item}', [ItemController::class, 'update'])->name('items.update');
     });
 });

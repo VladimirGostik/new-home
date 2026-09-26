@@ -25,8 +25,17 @@ final class UserSeeder extends Seeder
 
         $admin->assignRole('admin');
 
-        User::factory(5)->create()->each(function (User $user): void {
-            $user->assignRole('user');
-        });
+        $owner = User::firstOrCreate(
+            ['email' => 'gostikvladko9@gmail.com'],
+            [
+                'name' => 'Vladimír',
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+                'is_active' => true,
+                'locale' => 'sk',
+            ],
+        );
+
+        $owner->assignRole('user');
     }
 }

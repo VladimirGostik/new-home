@@ -25,6 +25,27 @@ final class PermissionSeeder extends Seeder
         'view api docs',
         'view media',
         'upload files',
+        'view rooms',
+        'create rooms',
+        'edit rooms',
+        'delete rooms',
+        'view items',
+        'create items',
+        'edit items',
+        'delete items',
+    ];
+
+    /** Every family member (role `user`) can see and edit the whole plan and upload photos. */
+    public const array FAMILY_PERMISSIONS = [
+        'upload files',
+        'view rooms',
+        'create rooms',
+        'edit rooms',
+        'delete rooms',
+        'view items',
+        'create items',
+        'edit items',
+        'delete items',
     ];
 
     public function run(): void
@@ -38,6 +59,7 @@ final class PermissionSeeder extends Seeder
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         $adminRole->syncPermissions(self::PERMISSIONS);
 
-        Role::firstOrCreate(['name' => 'user', 'guard_name' => 'web']);
+        $userRole = Role::firstOrCreate(['name' => 'user', 'guard_name' => 'web']);
+        $userRole->syncPermissions(self::FAMILY_PERMISSIONS);
     }
 }
