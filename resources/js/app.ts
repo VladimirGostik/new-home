@@ -8,11 +8,14 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createI18n } from 'vue-i18n';
 
 import AppLayout from './Layouts/AppLayout.vue';
+import { initNavigationHistory } from './Composables/navigationHistory';
 
 import enApp from '../lang/en/app.json';
 import skApp from '../lang/sk/app.json';
 
 const appName = (import.meta.env.VITE_APP_NAME as string | undefined) ?? 'App';
+
+initNavigationHistory();
 
 // Flat keys (`t('items')`) plus the same set under `app.` for components that call `t('app.items')`.
 const messages = {

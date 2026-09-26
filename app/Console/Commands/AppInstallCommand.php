@@ -32,6 +32,12 @@ final class AppInstallCommand extends Command
             '--force' => true,
         ], $this->output);
 
+        // Local "public" disk needs public/storage → storage/app/public; without it Laravel's
+        // signed local-disk route answers /storage/* with 403. Idempotent; harmless on S3.
+        if (! file_exists(public_path('storage'))) {
+            Artisan::call('storage:link', [], $this->output);
+        }
+
         $this->info('Install finished.');
 
         return self::SUCCESS;

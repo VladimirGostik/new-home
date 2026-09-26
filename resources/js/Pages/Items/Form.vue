@@ -8,9 +8,11 @@ import TextareaInput from '@/Components/Forms/TextareaInput.vue';
 import SelectInput from '@/Components/Forms/SelectInput.vue';
 import FormField from '@/Components/Forms/FormField.vue';
 import FormProvider from '@/Components/Forms/FormProvider.vue';
+import PriceInput from '@/Components/Forms/PriceInput.vue';
 import FileUploadInput, { type InitialFile } from '@/Components/Forms/FileUploadInput.vue';
 import ConfirmDeleteModal from '@/Components/ConfirmDeleteModal.vue';
 import { useDeleteConfirm } from '@/Composables/useDeleteConfirm';
+import { useReturnTo } from '@/Composables/useReturnTo';
 import { formatEur } from '@/Composables/useMoney';
 
 interface OptionItem {
@@ -29,22 +31,10 @@ const props = defineProps<{
 const { t } = useI18n();
 
 const isEditing = computed(() => !!props.item);
+const locked = computed(() => !!props.item?.selected_variant_id);
 
-// Where to go back: the page that linked here (same origin), else the item list.
+const returnTo = useReturnTo();
 const query = new URLSearchParams(window.location.search);
-const returnTo = (() => {
-    const explicit = query.get('return');
-    if (explicit?.startsWith('/') && !explicit.startsWith('//')) return explicit;
-    try {
-        const referrer = new URL(document.referrer);
-        if (referrer.origin === window.location.origin && !referrer.pathname.startsWith('/items/')) {
-            return referrer.pathname + referrer.search;
-        }
-    } catch {
-        // no or foreign referrer
-    }
-    return '/items';
-})();
 
 const roomSelectOptions = computed(() => [
     { value: '', label: t('whole_house') },
@@ -97,14 +87,6 @@ const bought = computed({
 function stepQuantity(delta: number) {
     form.quantity = Math.min(9999, Math.max(1, (form.quantity || 1) + delta));
 }
-
-function onPriceInput(event: Event) {
-    // Accept both "79,90" and "79.90" — Slovak keyboards type a comma.
-    const raw = (event.target as HTMLInputElement).value.replace(/\s/g, '').replace(',', '.');
-    form.unit_price = raw === '' ? null : Number(raw);
-}
-
-const priceText = ref(props.item?.unit_price != null ? props.item.unit_price.toFixed(2).replace('.', ',') : '');
 
 const photoUuid = ref<string | null>(null);
 const initialPhoto = computed<InitialFile[]>(() => {
@@ -168,11 +150,23 @@ function submit() {
                 </button>
             </div>
 
+            <p
+                v-if="locked && item"
+                class="rounded-[14px] bg-olive-soft p-3.5 text-sm text-olive-deep"
+            >
+                {{ t('fields_from_selected_variant', { name: item.selected_variant_name }) }}
+                <Link
+                    :href="`/items/${item.id}`"
+                    class="inline-flex min-h-11 items-center font-semibold underline"
+                >{{ t('edit_variants_link') }}</Link>
+            </p>
+
             <FileUploadInput
                 :model-value="photoUuid"
                 :initial-files="initialPhoto"
                 accept="image/jpeg,image/png,image/webp,image/heic"
                 :error="form.errors.photo_uuid"
+                :disabled="locked"
                 @update:model-value="onPhotoUpdate"
             />
 
@@ -192,23 +186,12 @@ function submit() {
             />
 
             <div class="grid grid-cols-2 gap-3">
-                <FormField
+                <PriceInput
+                    v-model="form.unit_price"
                     :label="t('unit_price')"
                     :error="form.errors.unit_price"
-                >
-                    <label class="input w-full tabular-nums">
-                        <input
-                            v-model="priceText"
-                            type="text"
-                            inputmode="decimal"
-                            autocomplete="off"
-                            :placeholder="t('no_price')"
-                            :aria-invalid="form.errors.unit_price ? 'true' : undefined"
-                            @input="onPriceInput"
-                        />
-                        <span class="text-muted">€</span>
-                    </label>
-                </FormField>
+                    :disabled="locked"
+                />
 
                 <FormField
                     :label="t('pieces_count')"
@@ -310,6 +293,7 @@ function submit() {
                 :label="t('product_link')"
                 placeholder="https://"
                 inputmode="url"
+                :disabled="locked"
             />
 
             <TextareaInput
