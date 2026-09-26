@@ -5,6 +5,8 @@ import { useToast } from '@/Composables/useToast';
 
 type Variant = App.Data.ItemVariantListItemData;
 
+const voterNameCollator = new Intl.Collator('sk');
+
 export function useVariantVoting(itemId: MaybeRefOrGetter<string>, variants: MaybeRefOrGetter<Variant[]>) {
     const { t } = useI18n();
     const page = usePage();
@@ -28,9 +30,16 @@ export function useVariantVoting(itemId: MaybeRefOrGetter<string>, variants: May
             const delta = now ? 1 : -1;
             let voterNames = variant.voter_names;
             if (myName) {
-                voterNames = now ? [...voterNames, myName] : voterNames.filter((name) => name !== myName);
+                if (now) {
+                    const insertAt = voterNames.findIndex((name) => voterNameCollator.compare(name, myName) > 0);
+                    voterNames =
+                        insertAt === -1
+                            ? [...voterNames, myName]
+                            : [...voterNames.slice(0, insertAt), myName, ...voterNames.slice(insertAt)];
+                } else {
+                    voterNames = voterNames.filter((name) => name !== myName);
+                }
             }
-            voterNames = [...voterNames].sort((a, b) => a.localeCompare(b, 'sk'));
 
             return {
                 ...variant,

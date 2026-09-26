@@ -8,9 +8,13 @@ use App\Models\Item;
 use App\Models\ItemVariant;
 use App\Models\ItemVariantVote;
 use App\Models\User;
+use App\Services\ItemVariantVoteService;
+use Closure;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use PDOException;
 use Tests\Support\CreatesUsers;
 use Tests\TestCase;
 
@@ -75,6 +79,40 @@ final class ItemVariantVoteTest extends TestCase
         $this->actingAs($user)->post("/items/{$variantB->item_id}/variants/{$variantB->id}/vote")->assertRedirect();
 
         $this->assertSame(2, ItemVariantVote::query()->where('user_id', $user->id)->count());
+    }
+
+    public function test_cast_recovers_from_concurrent_unique_violation_and_keeps_single_vote(): void
+    {
+        // A real cross-request race needs two independent DB connections; the test suite
+        // shares one in-memory SQLite connection, so the exact exception is injected here
+        // via a DB::transaction partial mock instead of a live race.
+        $user = User::factory()->create();
+        $item = Item::factory()->create();
+        $winner = ItemVariant::factory()->create(['item_id' => $item->id]);
+        $loser = ItemVariant::factory()->create(['item_id' => $item->id]);
+        ItemVariantVote::factory()->create(['item_variant_id' => $winner->id, 'item_id' => $item->id, 'user_id' => $user->id]);
+
+        $attempt = 0;
+        DB::shouldReceive('transaction')
+            ->twice()
+            ->andReturnUsing(function (Closure $callback) use (&$attempt): mixed {
+                $attempt++;
+
+                if ($attempt === 1) {
+                    throw new UniqueConstraintViolationException('sqlite', 'insert into "item_variant_votes" ...', [], new PDOException('UNIQUE constraint failed'));
+                }
+
+                return $callback();
+            });
+
+        $vote = app(ItemVariantVoteService::class)->cast($loser, $user);
+
+        $this->assertSame($loser->id, $vote->item_variant_id);
+        $this->assertSame(1, ItemVariantVote::query()->where('item_id', $item->id)->where('user_id', $user->id)->count());
+        $this->assertSame(
+            $loser->id,
+            ItemVariantVote::query()->where('item_id', $item->id)->where('user_id', $user->id)->firstOrFail()->item_variant_id,
+        );
     }
 
     public function test_retract_removes_own_vote_only(): void

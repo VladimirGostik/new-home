@@ -339,6 +339,26 @@ final class ItemVariantControllerTest extends TestCase
         );
     }
 
+    public function test_show_orders_voter_names_locale_aware_for_slovak_diacritics(): void
+    {
+        $user = $this->userWithPermission('view items');
+        $item = Item::factory()->create();
+        $variant = ItemVariant::factory()->create(['item_id' => $item->id]);
+        $zofia = User::factory()->create(['name' => 'Žofia']);
+        $adam = User::factory()->create(['name' => 'Adam']);
+        $lubo = User::factory()->create(['name' => 'Ľubo']);
+        foreach ([$zofia, $adam, $lubo] as $voter) {
+            ItemVariantVote::factory()->create(['item_variant_id' => $variant->id, 'item_id' => $item->id, 'user_id' => $voter->id]);
+        }
+
+        $response = $this->withoutVite()->actingAs($user)->get("/items/{$item->id}");
+
+        $response->assertOk();
+        $response->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('variants.0.voter_names', ['Adam', 'Ľubo', 'Žofia']),
+        );
+    }
+
     public function test_show_is_forbidden_without_view_items_permission(): void
     {
         $user = User::factory()->create();

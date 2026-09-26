@@ -22,8 +22,7 @@ final class AppDemoCommand extends Command
 
     public function handle(): int
     {
-        // Wipes the whole database. In production it needs an interactive "yes" or --force,
-        // so it can never run by accident as a deploy command (that would erase real data).
+        // Wipes the whole database: production requires an interactive "yes" or --force so it never runs as an accidental deploy step.
         if (! $this->confirmToProceed('This will ERASE ALL DATA and reseed demo content.')) {
             return self::FAILURE;
         }

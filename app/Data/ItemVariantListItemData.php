@@ -6,6 +6,7 @@ namespace App\Data;
 
 use App\Models\ItemVariant;
 use App\Models\ItemVariantVote;
+use Illuminate\Support\Str;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -37,7 +38,7 @@ final class ItemVariantListItemData extends Data
         $voterNames = $variant->votes
             ->map(fn (ItemVariantVote $vote): ?string => $vote->user?->name)
             ->filter()
-            ->sort()
+            ->sort(fn (string $a, string $b): int => Str::ascii($a) <=> Str::ascii($b))
             ->values()
             ->all();
 
