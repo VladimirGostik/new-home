@@ -14,7 +14,7 @@ final class NavigationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_family_member_sees_main_sections_and_only_profile_in_settings(): void
+    public function test_family_member_sees_main_sections_and_profile_plus_media_in_settings(): void
     {
         $this->seed(PermissionSeeder::class);
         $member = User::factory()->create();
@@ -27,8 +27,9 @@ final class NavigationTest extends TestCase
                 ->where('navigation.2.key', 'items.mine')
                 ->where('navigation.3.key', 'rooms.index')
                 ->where('navigation.4.key', 'group:settings')
-                ->has('navigation.4.children', 1)
-                ->where('navigation.4.children.0.key', 'profile.show'),
+                ->has('navigation.4.children', 2)
+                ->where('navigation.4.children.0.key', 'profile.show')
+                ->where('navigation.4.children.1.key', 'media.index'),
             );
     }
 

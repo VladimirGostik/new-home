@@ -35,9 +35,10 @@ final class PermissionSeeder extends Seeder
         'delete items',
     ];
 
-    /** Every family member (role `user`) can see and edit the whole plan and upload photos. */
+    /** Every family member (role `user`) can see and edit the whole plan, upload and browse photos. */
     public const array FAMILY_PERMISSIONS = [
         'upload files',
+        'view media',
         'view rooms',
         'create rooms',
         'edit rooms',

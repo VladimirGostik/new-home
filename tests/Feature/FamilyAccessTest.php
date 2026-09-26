@@ -11,6 +11,8 @@ use App\Models\Room;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\Support\RefreshesModels;
 use Tests\TestCase;
 
@@ -69,9 +71,16 @@ final class FamilyAccessTest extends TestCase
         $this->actingAs($this->member)->get('/roles')->assertForbidden();
     }
 
-    public function test_member_can_upload_photos(): void
+    public function test_member_can_upload_photos_and_browse_media(): void
     {
         $this->assertTrue($this->member->can('upload files'));
+        Storage::fake('public');
+
+        $this->actingAs($this->member)
+            ->post('/uploads', ['file' => UploadedFile::fake()->image('sofa.jpg')], ['Accept' => 'application/json'])
+            ->assertCreated();
+
+        $this->withoutVite()->actingAs($this->member)->get('/media')->assertOk();
     }
 
     public function test_member_can_manage_variants_and_votes(): void
