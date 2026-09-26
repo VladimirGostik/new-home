@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Support\MediaUrlGenerator;
 use Spatie\ImageOptimizer\Optimizers\Avifenc;
 use Spatie\ImageOptimizer\Optimizers\Cwebp;
 use Spatie\ImageOptimizer\Optimizers\Gifsicle;
@@ -25,7 +26,6 @@ use Spatie\MediaLibrary\ResponsiveImages\WidthCalculator\FileSizeOptimizedWidthC
 use Spatie\MediaLibrary\Support\FileNamer\DefaultFileNamer;
 use Spatie\MediaLibrary\Support\FileRemover\DefaultFileRemover;
 use Spatie\MediaLibrary\Support\PathGenerator\DefaultPathGenerator;
-use Spatie\MediaLibrary\Support\UrlGenerator\DefaultUrlGenerator;
 use Spatie\MediaLibraryPro\Models\TemporaryUpload;
 
 return [
@@ -34,7 +34,9 @@ return [
      * The disk on which to store added files and derived images by default. Choose
      * one or more of the disks you've configured in config/filesystems.php.
      */
-    'disk_name' => env('MEDIA_DISK', 'public'),
+    // Laravel Cloud injects FILESYSTEM_DISK=s3 when an object storage bucket (disk name "s3")
+    // is attached as the default disk; photos then go to the bucket automatically.
+    'disk_name' => env('MEDIA_DISK', env('FILESYSTEM_DISK') === 's3' ? 's3' : 'public'),
 
     /*
      * The maximum file size of an item in bytes.
@@ -129,7 +131,7 @@ return [
      * When urls to files get generated, this class will be called. Use the default
      * if your files are stored locally above the site root or on s3.
      */
-    'url_generator' => DefaultUrlGenerator::class,
+    'url_generator' => MediaUrlGenerator::class,
 
     /*
      * Moves media on updating to keep path consistent. Enable it only with a custom
@@ -259,7 +261,8 @@ return [
      * The default lifetime in minutes for temporary urls.
      * This is used when you call the `getLastTemporaryUrl` or `getLastTemporaryUrl` method on a media item.
      */
-    'temporary_url_default_lifetime' => env('MEDIA_TEMPORARY_URL_DEFAULT_LIFETIME', 5),
+    // Long enough for a page left open in the shop; URLs are signed per request.
+    'temporary_url_default_lifetime' => env('MEDIA_TEMPORARY_URL_DEFAULT_LIFETIME', 120),
 
     'remote' => [
         /*
