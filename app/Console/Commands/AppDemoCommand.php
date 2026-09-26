@@ -6,6 +6,7 @@ namespace App\Console\Commands;
 
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Console\Command;
+use Illuminate\Console\ConfirmableTrait;
 use Illuminate\Support\Facades\Artisan;
 use Symfony\Component\Console\Attribute\AsCommand;
 
@@ -15,8 +16,18 @@ use Symfony\Component\Console\Attribute\AsCommand;
 )]
 final class AppDemoCommand extends Command
 {
+    use ConfirmableTrait;
+
+    protected $signature = 'app:demo {--force : Allow wiping the database in production}';
+
     public function handle(): int
     {
+        // Wipes the whole database. In production it needs an interactive "yes" or --force,
+        // so it can never run by accident as a deploy command (that would erase real data).
+        if (! $this->confirmToProceed('This will ERASE ALL DATA and reseed demo content.')) {
+            return self::FAILURE;
+        }
+
         $this->info('Dropping all tables and re-migrating...');
         Artisan::call('migrate:fresh', ['--force' => true], $this->output);
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 final class AppDemoCommandTest extends TestCase
@@ -33,5 +34,17 @@ final class AppDemoCommandTest extends TestCase
         ]);
 
         $response->assertRedirect(route('dashboard'));
+    }
+
+    public function test_refuses_to_wipe_production_without_force(): void
+    {
+        $this->app->detectEnvironment(fn (): string => 'production');
+
+        $this->artisan('app:demo')
+            ->expectsConfirmation('Are you sure you want to run this command?', 'no')
+            ->assertFailed();
+
+        // Nothing was migrated: the in-memory DB still has no tables.
+        $this->assertFalse(Schema::hasTable('users'));
     }
 }
