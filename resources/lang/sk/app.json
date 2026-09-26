@@ -247,5 +247,7 @@
     "items_without_room": "žiadne položky bez miestnosti | 1 položka bez miestnosti | {n} položky bez miestnosti | {n} položiek bez miestnosti",
     "room_total": "Spolu za miestnosť",
     "unpriced_not_counted": "všetky majú cenu | 1 položka bez ceny sa do súčtu nerátá. | {n} položky bez ceny sa do súčtu nerátajú. | {n} položiek bez ceny sa do súčtu nerátajú.",
-    "room_empty": "V tejto miestnosti zatiaľ nič nie je."
+    "room_empty": "V tejto miestnosti zatiaľ nič nie je.",
+    "role_admin": "Admin (správa účtov)",
+    "role_user": "Člen rodiny"
 }

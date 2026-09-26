@@ -247,5 +247,7 @@
     "items_without_room": "{n} item without a room | {n} items without a room",
     "room_total": "Room total",
     "unpriced_not_counted": "{n} item without a price is not counted. | {n} items without a price are not counted.",
-    "room_empty": "Nothing in this room yet."
+    "room_empty": "Nothing in this room yet.",
+    "role_admin": "Admin (manages accounts)",
+    "role_user": "Family member"
 }

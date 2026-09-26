@@ -13,7 +13,7 @@ import FormProvider from '@/Components/Forms/FormProvider.vue';
 import type { Breadcrumb } from '@/types';
 import type { CheckboxOption } from '@/Components/Forms/CheckboxGroup.vue';
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 
 const props = defineProps<{
     user?: App.Data.UserListItemData;
@@ -29,7 +29,7 @@ const breadcrumbs: Breadcrumb[] = [
 ];
 
 const roleOptions = computed<CheckboxOption[]>(() =>
-    props.roles.map((r) => ({ value: r.name, label: r.name })),
+    props.roles.map((r) => ({ value: r.name, label: te(`role_${r.name}`) ? t(`role_${r.name}`) : r.name })),
 );
 
 const form = useForm(
@@ -41,7 +41,8 @@ const form = useForm(
         password: '',
         password_confirmation: '',
         is_active: props.user?.is_active ?? true,
-        roles: [...(props.user?.roles ?? [])] as string[],
+        // New accounts default to a family member so they can use the app right away.
+        roles: [...(props.user?.roles ?? ['user'])] as string[],
     },
 );
 
