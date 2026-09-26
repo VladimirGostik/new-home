@@ -12,7 +12,7 @@ defineProps<{
         <!-- Breadcrumbs -->
         <div
             v-if="breadcrumbs && breadcrumbs.length > 0"
-            class="breadcrumbs text-sm"
+            class="breadcrumbs hidden text-sm text-muted lg:block"
         >
             <ul>
                 <li
@@ -31,8 +31,8 @@ defineProps<{
         </div>
 
         <!-- Title + actions row -->
-        <div class="flex items-center justify-between">
-            <h1 class="text-2xl font-bold">{{ title }}</h1>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h1 class="font-display text-3xl font-semibold tracking-tight">{{ title }}</h1>
             <div class="flex items-center gap-2">
                 <slot name="actions" />
             </div>

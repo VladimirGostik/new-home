@@ -1,39 +1,27 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
+import { ChevronLeftIcon } from '@heroicons/vue/24/outline';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import Header from '@/Layouts/Header.vue';
 import TextInput from '@/Components/Forms/TextInput.vue';
 import TextareaInput from '@/Components/Forms/TextareaInput.vue';
-import NumberInput from '@/Components/Forms/NumberInput.vue';
-import FormActions from '@/Components/Forms/FormActions.vue';
 import FormProvider from '@/Components/Forms/FormProvider.vue';
-import type { Breadcrumb } from '@/types';
-
-const { t } = useI18n();
 
 const props = defineProps<{
     room?: App.Data.RoomListItemData;
 }>();
 
+const { t } = useI18n();
+
 const isEditing = computed(() => !!props.room);
+const backHref = computed(() => (props.room ? `/rooms/${props.room.id}` : '/rooms'));
 
-const breadcrumbs: Breadcrumb[] = [
-    { label: t('dashboard'), url: '/' },
-    { label: t('rooms'), url: '/rooms' },
-    { label: isEditing.value ? t('edit') : t('create') },
-];
-
-const form = useForm(
-    isEditing.value ? 'put' : 'post',
-    isEditing.value ? `/rooms/${props.room!.id}` : '/rooms',
-    {
-        name: props.room?.name ?? '',
-        description: props.room?.description ?? '',
-        sort_order: props.room?.sort_order ?? 0,
-    },
-);
+// sort_order is omitted: new rooms are appended, order is changed on the rooms list.
+const form = useForm(isEditing.value ? 'put' : 'post', isEditing.value ? `/rooms/${props.room!.id}` : '/rooms', {
+    name: props.room?.name ?? '',
+    description: props.room?.description ?? '',
+});
 
 function submit() {
     form.submit();
@@ -41,63 +29,58 @@ function submit() {
 </script>
 
 <template>
-    <AppLayout>
-        <Header
-            :title="
-                isEditing
-                    ? `${t('edit')} ${t('rooms').toLowerCase()}`
-                    : `${t('create')} ${t('rooms').toLowerCase()}`
-            "
-            :breadcrumbs="breadcrumbs"
-        >
-            <template #actions>
-                <a
-                    href="/rooms"
-                    class="btn btn-ghost btn-sm"
-                >{{ t('cancel') }}</a>
-            </template>
-        </Header>
+    <Head :title="isEditing ? t('edit_room') : t('new_room')" />
 
+    <AppLayout :fab="false">
         <FormProvider :form="form">
             <form
                 novalidate
+                class="mx-auto flex max-w-2xl flex-col gap-4.5"
                 @submit.prevent="submit"
             >
-                <div class="card bg-base-100 shadow-sm mb-6">
-                    <div class="card-body">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <TextInput
-                                field="name"
-                                :label="t('name')"
-                                required
-                            />
-
-                            <NumberInput
-                                v-model="form.sort_order"
-                                :label="t('sort_order')"
-                                :min="0"
-                                :step="1"
-                                :error="form.errors.sort_order"
-                            />
-
-                            <div class="md:col-span-2">
-                                <TextareaInput
-                                    v-model="form.description"
-                                    :label="t('description')"
-                                    :rows="4"
-                                    :error="form.errors.description"
-                                />
-                            </div>
-                        </div>
-                    </div>
+                <div class="-ml-2 flex items-center gap-2">
+                    <Link
+                        :href="backHref"
+                        :aria-label="t('back')"
+                        class="flex size-11 items-center justify-center rounded-xl hover:bg-white"
+                    >
+                        <ChevronLeftIcon class="size-5.5 stroke-2" />
+                    </Link>
+                    <h1 class="font-display text-[22px] font-semibold lg:text-3xl">{{ isEditing ? t('edit_room') : t('new_room') }}</h1>
                 </div>
 
-                <FormActions
-                    cancel-href="/rooms"
-                    :cancel-label="t('cancel')"
-                    :submit-label="t('save')"
-                    :processing="form.processing"
+                <TextInput
+                    field="name"
+                    :label="t('item_name')"
+                    required
+                    autocomplete="off"
+                    :placeholder="t('room_name_placeholder')"
                 />
+
+                <TextareaInput
+                    v-model="form.description"
+                    :label="t('description')"
+                    :rows="3"
+                    :error="form.errors.description"
+                />
+
+                <div class="flex gap-3">
+                    <Link
+                        :href="backHref"
+                        class="btn h-13.5 rounded-2xl border-line bg-white px-6"
+                    >{{ t('cancel') }}</Link>
+                    <button
+                        type="submit"
+                        class="btn btn-primary h-13.5 flex-1 rounded-2xl text-base"
+                        :disabled="form.processing"
+                    >
+                        <span
+                            v-if="form.processing"
+                            class="loading loading-spinner loading-sm"
+                        />
+                        {{ isEditing ? t('save_changes') : t('add_room') }}
+                    </button>
+                </div>
             </form>
         </FormProvider>
     </AppLayout>

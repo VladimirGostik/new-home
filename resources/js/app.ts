@@ -12,10 +12,20 @@ import skApp from '../lang/sk/app.json';
 
 const appName = (import.meta.env.VITE_APP_NAME as string | undefined) ?? 'App';
 
+// Flat keys (`t('items')`) plus the same set under `app.` for components that call `t('app.items')`.
 const messages = {
-    en: { ...enApp },
-    sk: { ...skApp },
+    en: { ...enApp, app: enApp },
+    sk: { ...skApp, app: skApp },
 };
+
+/** Slovak plural forms: "0 | 1 | 2–4 | 5+" (e.g. žiadne položky | 1 položka | 3 položky | 7 položiek). */
+function slovakPlural(choice: number, choicesLength: number): number {
+    const n = Math.abs(choice);
+    if (choicesLength !== 4) return n === 1 ? 0 : 1;
+    if (n === 0) return 0;
+    if (n === 1) return 1;
+    return n >= 2 && n <= 4 ? 2 : 3;
+}
 
 void createInertiaApp({
     title: (title: string | null) =>
@@ -44,6 +54,7 @@ void createInertiaApp({
             locale,
             fallbackLocale: 'en',
             messages,
+            pluralRules: { sk: slovakPlural },
         });
 
         router.on('navigate', (event: Event) => {
@@ -59,5 +70,5 @@ void createInertiaApp({
             .use(i18n)
             .mount(el);
     },
-    progress: { color: '#4f46e5' },
+    progress: { color: '#56642a' },
 });

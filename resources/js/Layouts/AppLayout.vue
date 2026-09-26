@@ -1,24 +1,35 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, watch } from 'vue';
-import { usePage, router } from '@inertiajs/vue3';
+import { Link, usePage, router } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
-
-type NavigationItem = App.Data.NavigationItemData;
 import {
     HomeIcon,
     ClipboardDocumentListIcon,
     UsersIcon,
     ShieldCheckIcon,
     UserCircleIcon,
+    UserIcon,
     Cog6ToothIcon,
     ArrowRightOnRectangleIcon,
-    GlobeAltIcon,
     PhotoIcon,
     EnvelopeIcon,
     HomeModernIcon,
     ListBulletIcon,
+    Squares2X2Icon,
+    PlusIcon,
 } from '@heroicons/vue/24/outline';
 import type { ToastPayload } from '@/Composables/useToast';
+import BrandMark from '@/Components/BrandMark.vue';
+
+type NavigationItem = App.Data.NavigationItemData;
+
+const props = withDefaults(
+    defineProps<{
+        /** Href of the floating "+" button on mobile; `false` hides it. */
+        fab?: string | false;
+    }>(),
+    { fab: '/items/create' },
+);
 
 const { t } = useI18n();
 const page = usePage();
@@ -26,13 +37,31 @@ const page = usePage();
 const appName = (import.meta.env.VITE_APP_NAME as string | undefined) ?? 'App';
 
 const auth = computed(() => page.props.auth);
-const locale = computed(() => page.props.locale);
-const languages = computed(() => page.props.languages);
-const navigation = computed(() => page.props.navigation ?? []);
+const navigation = computed<NavigationItem[]>(() => page.props.navigation ?? []);
+const can = computed(() => (page.props.can ?? {}) as Record<string, boolean>);
+
+const mainNav = computed(() => navigation.value.filter((item) => item.children.length === 0));
+const settingsNav = computed(() => navigation.value.find((item) => item.key === 'group:settings')?.children ?? []);
+
+/** Bottom-bar icons follow the design (grid for rooms), independent of the sidebar icon names. */
+const TAB_ICONS: Record<string, object> = {
+    dashboard: HomeIcon,
+    'items.index': ListBulletIcon,
+    'items.mine': UserIcon,
+    'rooms.index': Squares2X2Icon,
+};
+
+const TAB_LABELS: Record<string, string> = {
+    dashboard: 'dashboard',
+    'items.index': 'items',
+    'items.mine': 'my_items_short',
+    'rooms.index': 'rooms',
+};
 
 const ICONS: Record<string, object> = {
     HomeIcon,
     UsersIcon,
+    UserIcon,
     ShieldCheckIcon,
     ClipboardDocumentListIcon,
     PhotoIcon,
@@ -41,6 +70,7 @@ const ICONS: Record<string, object> = {
     Cog6ToothIcon,
     HomeModernIcon,
     ListBulletIcon,
+    Squares2X2Icon,
 };
 
 function resolveIcon(name: string): object {
@@ -50,6 +80,18 @@ function resolveIcon(name: string): object {
 function translateLabel(label: string): string {
     return label.startsWith('app.') ? t(label.slice(4)) : t(label);
 }
+
+const initials = computed(() => {
+    const name: string = auth.value.user?.name ?? '';
+    return name
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join('');
+});
+
+const showFab = computed(() => props.fab !== false && can.value.createItems === true);
 
 interface ToastMessage {
     id: number;
@@ -65,14 +107,13 @@ function addToast(message: string, type: ToastMessage['type']) {
     const id = ++toastCounter;
     toasts.push({ id, message, type });
     setTimeout(() => {
-        const index = toasts.findIndex((t) => t.id === id);
+        const index = toasts.findIndex((toast) => toast.id === id);
         if (index !== -1) toasts.splice(index, 1);
-    }, 4000);
+    }, 3500);
 }
 
 function handleToastEvent(event: Event) {
-    const customEvent = event as CustomEvent<ToastPayload>;
-    const { message, type } = customEvent.detail;
+    const { message, type } = (event as CustomEvent<ToastPayload>).detail;
     addToast(message, type);
 }
 
@@ -86,23 +127,17 @@ watch(
     { immediate: true, deep: true },
 );
 
-onMounted(() => {
-    window.addEventListener('app-toast', handleToastEvent);
-});
-
-onUnmounted(() => {
-    window.removeEventListener('app-toast', handleToastEvent);
-});
+onMounted(() => window.addEventListener('app-toast', handleToastEvent));
+onUnmounted(() => window.removeEventListener('app-toast', handleToastEvent));
 
 function logout() {
     router.post('/logout');
 }
 
 function isActive(href: string): boolean {
-    if (href === '/') {
-        return page.url === '/' || page.url === '';
-    }
-    return page.url.startsWith(href);
+    const path = page.url.split('?')[0];
+    if (href === '/') return path === '/' || path === '';
+    return path === href || path.startsWith(`${href}/`);
 }
 
 function toastAlertClass(type: ToastMessage['type']): string {
@@ -114,199 +149,180 @@ function toastAlertClass(type: ToastMessage['type']): string {
 
 <template>
     <div
-        class="drawer lg:drawer-open"
+        class="min-h-dvh bg-paper text-ink lg:flex"
         data-theme="app-theme"
     >
-        <input
-            id="app-drawer"
-            type="checkbox"
-            class="drawer-toggle"
-        />
-
-        <!-- Page content -->
-        <div class="drawer-content flex flex-col min-h-screen">
-            <!-- Mobile top bar -->
-            <div
-                class="navbar bg-base-100 shadow-sm lg:hidden sticky top-0 z-10"
+        <!-- Desktop sidebar -->
+        <aside class="hidden lg:flex lg:w-62 lg:shrink-0 lg:flex-col lg:gap-7 lg:bg-ink lg:px-4 lg:py-6 lg:text-paper sticky top-0 h-dvh">
+            <Link
+                href="/"
+                class="flex items-center gap-2.5 px-2"
             >
-                <div class="flex-none">
-                    <label
-                        for="app-drawer"
-                        class="btn btn-square btn-ghost"
+                <BrandMark class="size-8.5" />
+                <span class="font-display text-[19px] font-semibold">{{ appName }}</span>
+            </Link>
+
+            <nav
+                :aria-label="t('main_navigation')"
+                class="flex flex-col gap-1"
+            >
+                <Link
+                    v-for="item in mainNav"
+                    :key="item.key"
+                    :href="item.href"
+                    :aria-current="isActive(item.href) ? 'page' : undefined"
+                    class="flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] transition-colors"
+                    :class="isActive(item.href) ? 'bg-ink-soft font-semibold text-paper' : 'text-[#cfc8b8] hover:bg-ink-soft hover:text-paper'"
+                >
+                    <span
+                        class="h-4.5 w-1 rounded-full"
+                        :class="isActive(item.href) ? 'bg-oak' : 'bg-transparent'"
+                    />
+                    {{ translateLabel(item.label) }}
+                </Link>
+            </nav>
+
+            <div class="mt-auto flex flex-col gap-1 border-t border-[#33332d] pt-4">
+                <span
+                    v-if="settingsNav.length"
+                    class="px-3 pb-1.5 text-xs uppercase tracking-[0.08em] text-[#8f897b]"
+                >{{ t('settings') }}</span>
+                <Link
+                    v-for="child in settingsNav"
+                    :key="child.key"
+                    :href="child.href"
+                    class="flex h-9.5 items-center gap-2.5 rounded-lg px-3 text-sm transition-colors"
+                    :class="isActive(child.href) ? 'bg-ink-soft text-paper' : 'text-[#cfc8b8] hover:text-paper'"
+                >
+                    <component
+                        :is="resolveIcon(child.icon)"
+                        class="size-4"
+                    />
+                    {{ translateLabel(child.label) }}
+                </Link>
+
+                <div
+                    v-if="auth.user"
+                    class="mt-3 flex items-center gap-3 rounded-xl bg-ink-soft px-3 py-2.5"
+                >
+                    <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-olive text-sm font-semibold text-white">{{ initials }}</span>
+                    <span class="min-w-0 flex-1">
+                        <span class="block truncate text-sm font-medium">{{ auth.user.name }}</span>
+                        <span class="block truncate text-xs text-[#8f897b]">{{ auth.user.email }}</span>
+                    </span>
+                    <button
+                        type="button"
+                        class="btn btn-ghost btn-sm btn-square text-[#cfc8b8] hover:bg-ink hover:text-paper"
+                        :aria-label="t('logout')"
+                        @click="logout"
                     >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            class="inline-block size-5 stroke-current"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M4 6h16M4 12h16M4 18h16"
-                            />
-                        </svg>
-                    </label>
-                </div>
-                <div class="flex-1">
-                    <span class="text-lg font-bold">{{ appName }}</span>
+                        <ArrowRightOnRectangleIcon class="size-5" />
+                    </button>
                 </div>
             </div>
+        </aside>
 
-            <!-- Main content -->
-            <main class="flex-1 p-6">
+        <div class="flex min-w-0 flex-1 flex-col">
+            <!-- Mobile top bar -->
+            <header class="sticky top-0 z-20 flex items-center justify-between bg-paper/95 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 backdrop-blur lg:hidden">
+                <Link
+                    href="/"
+                    class="flex items-center gap-2.5"
+                >
+                    <BrandMark class="size-8" />
+                    <span class="font-display text-[19px] font-semibold tracking-tight">{{ appName }}</span>
+                </Link>
+
+                <div class="dropdown dropdown-end">
+                    <button
+                        type="button"
+                        class="flex size-11 items-center justify-center rounded-full border border-line bg-white text-sm font-semibold"
+                        :aria-label="t('account_menu')"
+                    >
+                        {{ initials }}
+                    </button>
+                    <ul
+                        tabindex="0"
+                        class="dropdown-content menu z-30 mt-2 w-60 rounded-box border border-line bg-white p-2 shadow-lg"
+                    >
+                        <li
+                            v-if="auth.user"
+                            class="menu-title"
+                        >
+                            <span class="truncate">{{ auth.user.name }}</span>
+                        </li>
+                        <li
+                            v-for="child in settingsNav"
+                            :key="child.key"
+                        >
+                            <Link
+                                :href="child.href"
+                                class="min-h-11"
+                            >
+                                <component
+                                    :is="resolveIcon(child.icon)"
+                                    class="size-5"
+                                />
+                                {{ translateLabel(child.label) }}
+                            </Link>
+                        </li>
+                        <li>
+                            <button
+                                type="button"
+                                class="min-h-11 text-error"
+                                @click="logout"
+                            >
+                                <ArrowRightOnRectangleIcon class="size-5" />
+                                {{ t('logout') }}
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </header>
+
+            <main class="mx-auto w-full max-w-5xl flex-1 px-4 pt-3 pb-32 lg:px-10 lg:pt-9 lg:pb-12">
                 <slot />
             </main>
         </div>
 
-        <!-- Sidebar -->
-        <div class="drawer-side z-20">
-            <label
-                for="app-drawer"
-                class="drawer-overlay"
-            />
-            <aside
-                class="w-64 min-h-screen bg-base-200 flex flex-col"
+        <!-- Mobile: floating add button -->
+        <Link
+            v-if="showFab"
+            :href="fab as string"
+            :aria-label="t('add_item')"
+            class="fixed right-5 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-20 flex size-14 items-center justify-center rounded-[18px] bg-olive text-white shadow-[0_8px_20px_rgba(62,74,27,0.28)] transition-transform active:scale-95 lg:hidden"
+        >
+            <PlusIcon class="size-6 stroke-2" />
+        </Link>
+
+        <!-- Mobile: bottom tab bar -->
+        <nav
+            :aria-label="t('main_navigation')"
+            class="pb-safe fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-line bg-white px-2 pt-1 lg:hidden"
+        >
+            <Link
+                v-for="item in mainNav"
+                :key="item.key"
+                :href="item.href"
+                :aria-current="isActive(item.href) ? 'page' : undefined"
+                class="flex min-h-15 flex-col items-center justify-center gap-1 text-xs"
+                :class="isActive(item.href) ? 'font-semibold text-olive' : 'text-muted'"
             >
-                <!-- Brand -->
-                <div class="p-4 border-b border-base-300">
-                    <a
-                        href="/"
-                        class="text-xl font-bold text-primary"
-                    >
-                        {{ appName }}
-                    </a>
-                </div>
-
-                <!-- User info -->
-                <div
-                    v-if="auth.user"
-                    class="p-4 border-b border-base-300"
-                >
-                    <div class="flex items-center gap-3">
-                        <div class="avatar placeholder">
-                            <div
-                                class="bg-neutral text-neutral-content rounded-full size-9 text-center pt-1"
-                            >
-                                <span class="text-xl">{{
-                                    auth.user.name.charAt(0).toUpperCase()
-                                }}</span>
-                            </div>
-                        </div>
-                        <div class="min-w-0">
-                            <p class="font-medium text-sm truncate">
-                                {{ auth.user.name }}
-                            </p>
-                            <p class="text-xs text-base-content/60 truncate">
-                                {{ auth.user.email }}
-                            </p>
-                        </div>
-                    </div>
-                    <button
-                        class="btn btn-sm btn-ghost btn-error mt-2 w-full justify-start gap-2"
-                        @click="logout"
-                    >
-                        <ArrowRightOnRectangleIcon class="size-4" />
-                        {{ t('logout') }}
-                    </button>
-                </div>
-
-                <!-- Navigation -->
-                <nav class="flex-1 p-3">
-                    <ul class="menu menu-sm gap-1 p-0">
-                        <template
-                            v-for="item in navigation"
-                            :key="item.key"
-                        >
-                            <li v-if="item.children.length === 0">
-                                <a
-                                    :href="item.href"
-                                    :class="{ active: isActive(item.href) }"
-                                    class="flex items-center gap-2"
-                                >
-                                    <component
-                                        :is="resolveIcon(item.icon)"
-                                        class="size-4"
-                                    />
-                                    {{ translateLabel(item.label) }}
-                                </a>
-                            </li>
-                            <li v-else>
-                                <details :open="item.children.some((c: NavigationItem) => isActive(c.href))">
-                                    <summary class="flex items-center gap-2">
-                                        <component
-                                            :is="resolveIcon(item.icon)"
-                                            class="size-4"
-                                        />
-                                        {{ translateLabel(item.label) }}
-                                    </summary>
-                                    <ul>
-                                        <li
-                                            v-for="child in item.children"
-                                            :key="child.key"
-                                        >
-                                            <a
-                                                :href="child.href"
-                                                :class="{ active: isActive(child.href) }"
-                                            >
-                                                <component
-                                                    :is="resolveIcon(child.icon)"
-                                                    class="size-4"
-                                                />
-                                                {{ translateLabel(child.label) }}
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </details>
-                            </li>
-                        </template>
-                    </ul>
-                </nav>
-
-                <!-- Language switcher -->
-                <div
-                    v-if="languages && languages.length > 1"
-                    class="p-3 border-t border-base-300"
-                >
-                    <div class="dropdown dropdown-top w-full">
-                        <div
-                            tabindex="0"
-                            role="button"
-                            class="btn btn-sm btn-ghost w-full justify-start gap-2"
-                        >
-                            <GlobeAltIcon class="size-4" />
-                            <span>{{ locale.toUpperCase() }}</span>
-                        </div>
-                        <ul
-                            tabindex="0"
-                            class="dropdown-content menu menu-sm bg-base-100 rounded-box shadow-lg z-50 w-full p-1"
-                        >
-                            <li
-                                v-for="lang in languages"
-                                :key="lang.value"
-                            >
-                                <a
-                                    :href="`/language/${lang.value}`"
-                                    :class="{ active: locale === lang.value }"
-                                >
-                                    <span v-if="lang.flag">{{ lang.flag }}</span>
-                                    {{ lang.label }}
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </aside>
-        </div>
+                <component
+                    :is="TAB_ICONS[item.key] ?? resolveIcon(item.icon)"
+                    class="size-5.5"
+                />
+                {{ t(TAB_LABELS[item.key] ?? item.label) }}
+            </Link>
+        </nav>
     </div>
 
-    <!-- Toast container -->
-    <div class="toast toast-bottom toast-end z-50">
+    <div class="toast toast-top toast-center z-50 w-[calc(100%-2rem)] max-w-md lg:toast-bottom lg:toast-end">
         <div
             v-for="toast in toasts"
             :key="toast.id"
-            class="alert"
+            role="status"
+            class="alert shadow-lg"
             :class="toastAlertClass(toast.type)"
         >
             <span>{{ toast.message }}</span>

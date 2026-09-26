@@ -80,4 +80,43 @@ final class MyItemsTest extends TestCase
     {
         $this->actingAs(User::factory()->create())->get('/my-items')->assertForbidden();
     }
+
+    public function test_items_index_filters_unpriced_items(): void
+    {
+        $user = $this->userWithPermission('view items');
+        Item::factory()->create(['name' => 'Priced', 'unit_price' => 10]);
+        Item::factory()->create(['name' => 'Unpriced', 'unit_price' => null]);
+
+        $this->withoutVite()->actingAs($user)->get('/items?filter[price]=none')
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('items.data', 1)
+                ->where('items.data.0.name', 'Unpriced'),
+            );
+    }
+
+    public function test_items_index_filters_by_status_value(): void
+    {
+        $user = $this->userWithPermission('view items');
+        Item::factory()->create(['status' => ItemStatus::Bought]);
+        Item::factory()->count(2)->create(['status' => ItemStatus::Planned]);
+
+        $this->withoutVite()->actingAs($user)->get('/items?filter[status]=planned')
+            ->assertInertia(fn (AssertableInertia $page) => $page->has('items.data', 2));
+    }
+
+    public function test_saving_returns_to_local_page_but_never_to_external_url(): void
+    {
+        $user = $this->userWithPermission('create items', 'edit items');
+        $item = Item::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/items', ['name' => 'Lampa', 'quantity' => 1, 'status' => 'planned', 'priority' => 'low', 'return_to' => '/rooms/abc'])
+            ->assertRedirect('/rooms/abc');
+
+        foreach (['https://evil.test', '//evil.test', '/\\evil.test'] as $target) {
+            $this->actingAs($user)
+                ->put("/items/{$item->id}", ['name' => 'X', 'quantity' => 1, 'status' => 'planned', 'priority' => 'low', 'return_to' => $target])
+                ->assertRedirect(route('items.index'));
+        }
+    }
 }

@@ -88,4 +88,17 @@ final class RoomDetailAndOrderTest extends TestCase
             ->put('/rooms/reorder', ['ids' => [$room->id]])
             ->assertForbidden();
     }
+
+    public function test_new_room_is_appended_and_update_keeps_position(): void
+    {
+        $user = $this->userWithPermission('create rooms', 'edit rooms');
+        Room::factory()->create(['sort_order' => 4]);
+
+        $this->actingAs($user)->post('/rooms', ['name' => 'Pracovňa'])->assertRedirect();
+        $room = Room::where('name', 'Pracovňa')->firstOrFail();
+        $this->assertSame(5, $room->sort_order);
+
+        $this->actingAs($user)->put("/rooms/{$room->id}", ['name' => 'Kancelária'])->assertRedirect();
+        $this->assertSame(5, $room->fresh()?->sort_order);
+    }
 }

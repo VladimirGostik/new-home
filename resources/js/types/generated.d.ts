@@ -61,7 +61,7 @@ readonly permissions: string[],
 export type CreateRoomData = {
 readonly name: string,
 readonly description: string | null,
-readonly sort_order: number,
+readonly sort_order: number | null,
 };
 export type CreateUserData = {
 readonly name: string,
@@ -243,7 +243,7 @@ readonly permissions: string[],
 export type UpdateRoomData = {
 readonly name: string,
 readonly description: string | null,
-readonly sort_order: number,
+readonly sort_order: number | null,
 };
 export type UpdateUserData = {
 readonly name: string,

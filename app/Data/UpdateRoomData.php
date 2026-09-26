@@ -18,6 +18,6 @@ final class UpdateRoomData extends Data
         public readonly string $name,
         public readonly ?string $description = null,
         #[Min(0)]
-        public readonly int $sort_order = 0,
+        public readonly ?int $sort_order = null,
     ) {}
 }

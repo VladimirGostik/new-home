@@ -68,6 +68,11 @@ final class ItemController extends Controller
 
                     $query->where('assigned_user_id', $value);
                 }),
+                AllowedFilter::callbackClean('price', function (Builder $query, mixed $value): void {
+                    if ($value === 'none') {
+                        $query->whereNull('unit_price');
+                    }
+                }),
                 AllowedFilter::dynamic('status'),
                 AllowedFilter::dynamic('priority'),
             )
@@ -112,11 +117,11 @@ final class ItemController extends Controller
     }
 
     #[Authorize('create', Item::class)]
-    public function store(CreateItemData $data): RedirectResponse
+    public function store(CreateItemData $data, Request $request): RedirectResponse
     {
         $this->itemService->create($data);
 
-        return redirect()->route('items.index')->with('success', __('app.item_created'));
+        return redirect()->to($this->returnPath($request))->with('success', __('app.item_created'));
     }
 
     #[Authorize('update', 'item')]
@@ -132,11 +137,11 @@ final class ItemController extends Controller
     }
 
     #[Authorize('update', 'item')]
-    public function update(UpdateItemData $data, Item $item): RedirectResponse
+    public function update(UpdateItemData $data, Item $item, Request $request): RedirectResponse
     {
         $this->itemService->update($item, $data);
 
-        return redirect()->route('items.index')->with('success', __('app.item_updated'));
+        return redirect()->to($this->returnPath($request))->with('success', __('app.item_updated'));
     }
 
     #[Authorize('update', 'item')]
@@ -153,6 +158,20 @@ final class ItemController extends Controller
         $this->itemService->delete($item);
 
         return redirect()->route('items.index')->with('success', __('app.item_deleted'));
+    }
+
+    /**
+     * Local path the form came from (e.g. a room detail), never an external URL.
+     */
+    private function returnPath(Request $request): string
+    {
+        $path = $request->input('return_to');
+
+        if (is_string($path) && preg_match('#^/(?![/\\\\])[^\s]*$#', $path) === 1) {
+            return $path;
+        }
+
+        return route('items.index');
     }
 
     /** @return array<int, array{id: string, name: string}> */

@@ -8,50 +8,81 @@
 @source '../**/*.blade.php';
 @source '../js/**/*.{ts,vue}';
 
+/* "Dub & Oliva" — paper, charcoal, olive, oak. Source: Claude Design canvas. */
 [data-theme='app-theme'] {
-    --color-base-100: oklch(98% 0 0);
-    --color-base-200: oklch(95% 0 0);
-    --color-base-300: oklch(90% 0 0);
-    --color-base-content: oklch(20% 0.01 240);
+    color-scheme: light;
 
-    --color-primary: oklch(55% 0.21 263);
-    --color-primary-content: oklch(98% 0 0);
+    --color-base-100: #ffffff;
+    --color-base-200: #faf8f3;
+    --color-base-300: #e7e2d8;
+    --color-base-content: #1a1a17;
 
-    --color-secondary: oklch(70% 0.18 195);
-    --color-secondary-content: oklch(98% 0 0);
+    --color-primary: #56642a;
+    --color-primary-content: #ffffff;
 
-    --color-accent: oklch(75% 0.2 70);
-    --color-accent-content: oklch(15% 0.01 240);
+    --color-secondary: #c08a52;
+    --color-secondary-content: #1a1a17;
 
-    --color-neutral: oklch(35% 0.01 240);
-    --color-neutral-content: oklch(98% 0 0);
+    --color-accent: #8a5a2b;
+    --color-accent-content: #ffffff;
 
-    --color-info: oklch(72% 0.15 230);
-    --color-info-content: oklch(98% 0 0);
+    --color-neutral: #1a1a17;
+    --color-neutral-content: #faf8f3;
 
-    --color-success: oklch(70% 0.18 145);
-    --color-success-content: oklch(15% 0.01 240);
+    --color-info: #3f6475;
+    --color-info-content: #ffffff;
 
-    --color-warning: oklch(78% 0.17 80);
-    --color-warning-content: oklch(15% 0.01 240);
+    --color-success: #56642a;
+    --color-success-content: #ffffff;
 
-    --color-error: oklch(60% 0.22 25);
-    --color-error-content: oklch(98% 0 0);
+    --color-warning: #c08a52;
+    --color-warning-content: #1a1a17;
 
-    --radius-selector: 0.5rem;
-    --radius-field: 0.375rem;
-    --radius-box: 0.75rem;
+    --color-error: #9a3b1e;
+    --color-error-content: #ffffff;
+
+    --radius-selector: 1rem;
+    --radius-field: 0.875rem;
+    --radius-box: 1.25rem;
 
     --size-selector: 0.25rem;
-    --size-field: 0.25rem;
+    --size-field: 0.3rem;
 
     --border: 1px;
-    --depth: 1;
+    --depth: 0;
     --noise: 0;
 }
 
 @theme {
+    --color-paper: #faf8f3;
+    --color-ink: #1a1a17;
+    --color-ink-soft: #2b2b25;
+    --color-muted: #6b675e;
+    --color-line: #e7e2d8;
+    --color-line-soft: #f0ece3;
+    --color-olive: #56642a;
+    --color-olive-deep: #3e4a1b;
+    --color-olive-soft: #e9ecdd;
+    --color-oak: #c08a52;
+    --color-oak-light: #d9b48a;
+    --color-oak-deep: #8a5a2b;
+    --color-oak-ink: #6e4520;
+    --color-oak-soft: #f3e8da;
+
+    --font-display: 'Fraunces', ui-serif, Georgia, serif;
     --font-sans:
         'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+@layer base {
+    body {
+        background-color: var(--color-paper);
+        color: var(--color-ink);
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
+@utility pb-safe {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }

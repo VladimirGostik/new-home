@@ -31,3 +31,6 @@ CLAUDE.md
 /.scribe
 /.ai
 /.junie
+
+# Playwright MCP session artefacts
+/.playwright-mcp

@@ -52,6 +52,8 @@ export default [
         },
         rules: {
             ...tsPlugin.configs.recommended.rules,
+            // TypeScript already reports undefined identifiers (and knows every DOM type).
+            'no-undef': 'off',
         },
     },
     // TypeScript rules for .vue files — vue-eslint-parser is the main parser,
@@ -72,6 +74,7 @@ export default [
         },
         rules: {
             ...tsPlugin.configs.recommended.rules,
+            'no-undef': 'off',
             'vue/multi-word-component-names': 'off',
         },
     },

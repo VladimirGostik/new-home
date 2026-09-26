@@ -18,7 +18,8 @@ final readonly class RoomService
             $room = Room::create([
                 'name' => $data->name,
                 'description' => $data->description,
-                'sort_order' => $data->sort_order,
+                // New rooms go to the end unless a position is given explicitly.
+                'sort_order' => $data->sort_order ?? ((int) Room::max('sort_order')) + 1,
             ]);
 
             return $room->fresh();
@@ -31,7 +32,7 @@ final readonly class RoomService
             $room->update([
                 'name' => $data->name,
                 'description' => $data->description,
-                'sort_order' => $data->sort_order,
+                'sort_order' => $data->sort_order ?? $room->sort_order,
             ]);
 
             return $room->fresh();

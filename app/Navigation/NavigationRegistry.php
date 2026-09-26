@@ -57,8 +57,12 @@ final class NavigationRegistry
             $controller = $route->getControllerClass();
             $method = $route->getActionMethod();
 
-            if ($controller === null || $method === $controller) {
+            if ($controller === null) {
                 continue;
+            }
+            if ($method === $controller) {
+                // Invokable controllers report the class name as the action method.
+                $method = '__invoke';
             }
             if (! class_exists($controller) || ! method_exists($controller, $method)) {
                 continue;
