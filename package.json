@@ -9,11 +9,13 @@
         "lint:js": "eslint resources/js/ vite.config.js",
         "lint:prettier": "prettier --check .",
         "fix:js": "eslint --fix resources/js/ vite.config.js",
-        "fix:prettier": "prettier --write ."
+        "fix:prettier": "prettier --write .",
+        "test:e2e": "playwright test"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
         "@heroicons/vue": "^2.2.0",
+        "@playwright/test": "^1.63.0",
         "@tailwindcss/postcss": "^4.2.4",
         "@types/node": "^25.6.0",
         "@typescript-eslint/eslint-plugin": "^8.59.1",

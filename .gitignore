@@ -34,3 +34,8 @@ CLAUDE.md
 
 # Playwright MCP session artefacts
 /.playwright-mcp
+
+# Playwright E2E artefacts
+/test-results
+/playwright-report
+/playwright/.cache

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 
 import Header from '@/Layouts/Header.vue';
@@ -98,13 +98,13 @@ const filterDefinitions = computed<FilterConfig[]>(() => [
 <template>
     <Header :title="t('users')" :breadcrumbs="breadcrumbs">
         <template #actions>
-            <a
+            <Link
                 v-if="can.createUsers"
                 href="/users/create"
-                class="btn btn-primary btn-sm"
+                class="btn btn-primary"
             >
                 {{ t('create') }}
-            </a>
+            </Link>
         </template>
     </Header>
 

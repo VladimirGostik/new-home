@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { Link, useForm } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import Header from '@/Layouts/Header.vue';
 import TextInput from '@/Components/Forms/TextInput.vue';
@@ -60,10 +60,10 @@ function submit() {
         :breadcrumbs="breadcrumbs"
     >
         <template #actions>
-            <a
+            <Link
                 href="/users"
-                class="btn btn-ghost btn-sm"
-            >{{ t('cancel') }}</a>
+                class="btn btn-ghost"
+            >{{ t('cancel') }}</Link>
         </template>
     </Header>
 

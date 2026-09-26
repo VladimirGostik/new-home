@@ -4,22 +4,16 @@ import { Link, usePage, router } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import {
     HomeIcon,
-    ClipboardDocumentListIcon,
-    UsersIcon,
-    ShieldCheckIcon,
-    UserCircleIcon,
     UserIcon,
-    Cog6ToothIcon,
     ArrowRightOnRectangleIcon,
-    PhotoIcon,
-    EnvelopeIcon,
-    HomeModernIcon,
     ListBulletIcon,
     Squares2X2Icon,
     PlusIcon,
 } from '@heroicons/vue/24/outline';
 import type { ToastPayload } from '@/Composables/useToast';
 import BrandMark from '@/Components/BrandMark.vue';
+import AccountMenu from '@/Layouts/AccountMenu.vue';
+import { resolveIcon, translateLabel } from '@/utils/navigation';
 
 type NavigationItem = App.Data.NavigationItemData;
 
@@ -49,29 +43,6 @@ const TAB_LABELS: Record<string, string> = {
     'items.mine': 'my_items_short',
     'rooms.index': 'rooms',
 };
-
-const ICONS: Record<string, object> = {
-    HomeIcon,
-    UsersIcon,
-    UserIcon,
-    ShieldCheckIcon,
-    ClipboardDocumentListIcon,
-    PhotoIcon,
-    EnvelopeIcon,
-    UserCircleIcon,
-    Cog6ToothIcon,
-    HomeModernIcon,
-    ListBulletIcon,
-    Squares2X2Icon,
-};
-
-function resolveIcon(name: string): object {
-    return ICONS[name] ?? HomeIcon;
-}
-
-function translateLabel(label: string): string {
-    return label.startsWith('app.') ? t(label.slice(4)) : t(label);
-}
 
 const initials = computed(() => {
     const name: string = auth.value.user?.name ?? '';
@@ -190,7 +161,7 @@ function toastAlertClass(type: ToastMessage['type']): string {
                         class="h-4.5 w-1 rounded-full"
                         :class="isActive(item.href) ? 'bg-oak' : 'bg-transparent'"
                     />
-                    {{ translateLabel(item.label) }}
+                    {{ translateLabel(t, item.label) }}
                 </Link>
             </nav>
 
@@ -210,7 +181,7 @@ function toastAlertClass(type: ToastMessage['type']): string {
                         :is="resolveIcon(child.icon)"
                         class="size-4"
                     />
-                    {{ translateLabel(child.label) }}
+                    {{ translateLabel(t, child.label) }}
                 </Link>
 
                 <div
@@ -236,7 +207,7 @@ function toastAlertClass(type: ToastMessage['type']): string {
 
         <div class="flex min-w-0 flex-1 flex-col">
             <!-- Mobile top bar -->
-            <header class="sticky top-0 z-20 flex items-center justify-between bg-paper/95 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 backdrop-blur lg:hidden">
+            <header class="sticky top-0 z-30 flex items-center justify-between bg-paper/95 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 backdrop-blur lg:hidden">
                 <Link
                     href="/"
                     class="flex items-center gap-2.5"
@@ -245,51 +216,11 @@ function toastAlertClass(type: ToastMessage['type']): string {
                     <span class="font-display text-[19px] font-semibold tracking-tight">{{ appName }}</span>
                 </Link>
 
-                <div class="dropdown dropdown-end">
-                    <button
-                        type="button"
-                        class="flex size-11 items-center justify-center rounded-full border border-line bg-white text-sm font-semibold"
-                        :aria-label="t('account_menu')"
-                    >
-                        {{ initials }}
-                    </button>
-                    <ul
-                        tabindex="0"
-                        class="dropdown-content menu z-30 mt-2 w-60 rounded-box border border-line bg-white p-2 shadow-lg"
-                    >
-                        <li
-                            v-if="auth.user"
-                            class="menu-title"
-                        >
-                            <span class="truncate">{{ auth.user.name }}</span>
-                        </li>
-                        <li
-                            v-for="child in settingsNav"
-                            :key="child.key"
-                        >
-                            <Link
-                                :href="child.href"
-                                class="min-h-11"
-                            >
-                                <component
-                                    :is="resolveIcon(child.icon)"
-                                    class="size-5"
-                                />
-                                {{ translateLabel(child.label) }}
-                            </Link>
-                        </li>
-                        <li>
-                            <button
-                                type="button"
-                                class="min-h-11 text-error"
-                                @click="logout"
-                            >
-                                <ArrowRightOnRectangleIcon class="size-5" />
-                                {{ t('logout') }}
-                            </button>
-                        </li>
-                    </ul>
-                </div>
+                <AccountMenu
+                    :initials="initials"
+                    :user-name="auth.user?.name ?? null"
+                    :items="settingsNav"
+                />
             </header>
 
             <main class="mx-auto w-full max-w-5xl flex-1 px-4 pt-3 pb-32 lg:px-10 lg:pt-9 lg:pb-12">

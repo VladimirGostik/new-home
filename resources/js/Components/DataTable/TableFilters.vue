@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref, useId, watch } from 'vue';
+import { useDropdown } from '@/Composables/useDropdown';
 import TableFilter from './TableFilter.vue';
 import TableSearch from './TableSearch.vue';
 import type { FilterConfig, FilterState, TableTabsConfig } from '@/types/table';
@@ -47,11 +48,16 @@ const availableFilters = computed(() => props.filters.filter((filter) => !active
 const hasOptionalFilters = computed(() => activeFilters.value.some((f) => f.clearable !== false) || !!search.value);
 const activeTab = computed(() => props.tabs?.property ? props.queryFilters[props.tabs.property] ?? props.tabs.defaultTab ?? 'all' : 'all');
 
+const filterDropdownId = useId();
+const filterDropdown = ref<HTMLElement | null>(null);
+const { isOpen: isFilterDropdownOpen, close: closeFilterDropdown, toggle: toggleFilterDropdown } = useDropdown(filterDropdown);
+
 function addFilter(property: string) {
   const config = props.filters.find((filter) => filter.property === property);
   if (!config) return;
   activeFilters.value.push(makeState(config));
   emit('change', config.property, null);
+  closeFilterDropdown();
 }
 
 function removeFilter(property: string) {
@@ -107,11 +113,24 @@ function handleTab(value: string) {
         @remove="removeFilter"
       />
 
-      <div v-if="availableFilters.length" class="dropdown dropdown-bottom">
-        <button tabindex="0" type="button" class="btn btn-sm btn-outline" data-autom="button-add-filter">
+      <div
+        v-if="availableFilters.length"
+        ref="filterDropdown"
+        class="dropdown dropdown-bottom"
+        :class="isFilterDropdownOpen ? 'dropdown-open' : 'dropdown-close'"
+      >
+        <button
+          type="button"
+          class="btn btn-sm btn-outline"
+          data-autom="button-add-filter"
+          aria-haspopup="true"
+          :aria-expanded="isFilterDropdownOpen"
+          :aria-controls="filterDropdownId"
+          @click="toggleFilterDropdown"
+        >
           {{ $t('filter') }}
         </button>
-        <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-20 w-56 p-2 shadow border border-base-300">
+        <ul :id="filterDropdownId" class="dropdown-content menu bg-base-100 rounded-box z-20 w-56 p-2 shadow border border-base-300">
           <li v-for="filter in availableFilters" :key="filter.property">
             <button type="button" @click="addFilter(filter.property)">{{ filter.label }}</button>
           </li>
