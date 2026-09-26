@@ -1,0 +1,5 @@
+# Dependency install scripts pnpm may run (pnpm 12 fails the install on undecided ones).
+# lefthook only installs local git hooks; builds (Laravel Cloud, Docker) don't need it.
+# Locally, run `pnpm exec lefthook install` once to enable the hooks.
+allowBuilds:
+  lefthook: false
