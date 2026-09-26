@@ -6,10 +6,12 @@ namespace Tests\Feature;
 
 use App\Enums\ItemStatus;
 use App\Models\Item;
+use App\Models\ItemVariant;
 use App\Models\Room;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\RefreshesModels;
 use Tests\TestCase;
 
 /**
@@ -19,6 +21,7 @@ use Tests\TestCase;
 final class FamilyAccessTest extends TestCase
 {
     use RefreshDatabase;
+    use RefreshesModels;
 
     private User $member;
 
@@ -69,5 +72,52 @@ final class FamilyAccessTest extends TestCase
     public function test_member_can_upload_photos(): void
     {
         $this->assertTrue($this->member->can('upload files'));
+    }
+
+    public function test_member_can_manage_variants_and_votes(): void
+    {
+        $item = Item::factory()->create();
+
+        $this->withoutVite()->actingAs($this->member)->get("/items/{$item->id}")->assertOk();
+
+        $this->actingAs($this->member)
+            ->post("/items/{$item->id}/variants", ['name' => 'Ikea sofa'])
+            ->assertRedirect();
+        $variant = ItemVariant::query()->where('item_id', $item->id)->firstOrFail();
+
+        $this->actingAs($this->member)
+            ->put("/items/{$item->id}/variants/{$variant->id}", ['name' => 'Ikea sofa 2'])
+            ->assertRedirect();
+
+        $this->actingAs($this->member)
+            ->post("/items/{$item->id}/variants/{$variant->id}/vote")
+            ->assertRedirect();
+        $this->assertDatabaseHas('item_variant_votes', ['item_variant_id' => $variant->id, 'user_id' => $this->member->id]);
+
+        $second = ItemVariant::factory()->create(['item_id' => $item->id]);
+        $this->actingAs($this->member)
+            ->post("/items/{$item->id}/variants/{$second->id}/vote")
+            ->assertRedirect();
+        $this->assertDatabaseHas('item_variant_votes', ['item_variant_id' => $second->id, 'user_id' => $this->member->id]);
+
+        $this->actingAs($this->member)
+            ->post("/items/{$item->id}/variants/{$second->id}/select")
+            ->assertRedirect();
+        $this->assertSame($second->id, $this->refreshed($item)->selected_variant_id);
+
+        $this->actingAs($this->member)
+            ->delete("/items/{$item->id}/selected-variant")
+            ->assertRedirect();
+        $this->assertNull($this->refreshed($item)->selected_variant_id);
+
+        $this->actingAs($this->member)
+            ->delete("/items/{$item->id}/vote")
+            ->assertRedirect();
+        $this->assertDatabaseMissing('item_variant_votes', ['user_id' => $this->member->id]);
+
+        $this->actingAs($this->member)
+            ->delete("/items/{$item->id}/variants/{$variant->id}")
+            ->assertRedirect();
+        $this->assertModelMissing($variant);
     }
 }

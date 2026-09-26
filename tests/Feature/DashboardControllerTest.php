@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Enums\ItemStatus;
 use App\Models\Item;
+use App\Models\ItemVariant;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -102,6 +103,34 @@ final class DashboardControllerTest extends TestCase
                 ->where('dashboard.totals.items_count', 0)
                 ->has('dashboard.people', 0)
                 ->has('dashboard.rooms', 1),
+            );
+    }
+
+    public function test_priced_variants_on_unpriced_item_do_not_affect_totals(): void
+    {
+        $user = $this->adminUser();
+        $item = Item::factory()->create(['unit_price' => null, 'quantity' => 2]);
+        ItemVariant::factory()->create(['item_id' => $item->id, 'unit_price' => 150]);
+
+        $this->withoutVite()->actingAs($user)->get('/')
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('dashboard.totals.items_count', 1)
+                ->where('dashboard.totals.unpriced_count', 1)
+                ->where('dashboard.totals.total', 0),
+            );
+    }
+
+    public function test_totals_include_copied_price_after_variant_is_selected(): void
+    {
+        $user = $this->adminUser();
+        $item = Item::factory()->create(['unit_price' => null, 'quantity' => 2]);
+        $variant = ItemVariant::factory()->create(['item_id' => $item->id, 'unit_price' => 150]);
+        $item->update(['selected_variant_id' => $variant->id, 'unit_price' => $variant->unit_price]);
+
+        $this->withoutVite()->actingAs($user)->get('/')
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('dashboard.totals.unpriced_count', 0)
+                ->where('dashboard.totals.total', 300),
             );
     }
 }

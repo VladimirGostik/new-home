@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\MediaLibrary\HasMedia;
@@ -24,7 +25,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property ItemStatus $status
  * @property ItemPriority $priority
  */
-#[Fillable(['name', 'note', 'room_id', 'unit_price', 'quantity', 'url', 'assigned_user_id', 'status', 'priority'])]
+#[Fillable(['name', 'note', 'room_id', 'unit_price', 'quantity', 'url', 'assigned_user_id', 'status', 'priority', 'selected_variant_id'])]
 final class Item extends Model implements HasMedia
 {
     /** @use HasFactory<ItemFactory> */
@@ -59,7 +60,7 @@ final class Item extends Model implements HasMedia
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'note', 'room_id', 'unit_price', 'quantity', 'url', 'assigned_user_id', 'status', 'priority'])
+            ->logOnly(['name', 'note', 'room_id', 'unit_price', 'quantity', 'url', 'assigned_user_id', 'status', 'priority', 'selected_variant_id'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }
@@ -88,5 +89,23 @@ final class Item extends Model implements HasMedia
     public function assignedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_user_id');
+    }
+
+    /** @return HasMany<ItemVariant, $this> */
+    public function variants(): HasMany
+    {
+        return $this->hasMany(ItemVariant::class)->orderBy('created_at')->orderBy('id');
+    }
+
+    /** @return BelongsTo<ItemVariant, $this> */
+    public function selectedVariant(): BelongsTo
+    {
+        return $this->belongsTo(ItemVariant::class, 'selected_variant_id');
+    }
+
+    /** @return HasMany<ItemVariantVote, $this> */
+    public function variantVotes(): HasMany
+    {
+        return $this->hasMany(ItemVariantVote::class);
     }
 }

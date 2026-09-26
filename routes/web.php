@@ -6,6 +6,7 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ItemController;
+use App\Http\Controllers\ItemVariantController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\NewPasswordController;
@@ -102,10 +103,18 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/items/create', [ItemController::class, 'create'])->name('items.create');
     Route::get('/my-items', [ItemController::class, 'mine'])->name('items.mine');
     Route::get('/items/{item}/edit', [ItemController::class, 'edit'])->name('items.edit');
+    Route::get('/items/{item}', [ItemController::class, 'show'])->name('items.show');
+    Route::delete('/items/{item}/variants/{variant}', [ItemVariantController::class, 'destroy'])->name('items.variants.destroy')->scopeBindings();
+    Route::post('/items/{item}/variants/{variant}/select', [ItemVariantController::class, 'select'])->name('items.variants.select')->scopeBindings();
+    Route::delete('/items/{item}/selected-variant', [ItemVariantController::class, 'unselect'])->name('items.variants.unselect');
+    Route::post('/items/{item}/variants/{variant}/vote', [ItemVariantController::class, 'vote'])->name('items.variants.vote')->scopeBindings();
+    Route::delete('/items/{item}/vote', [ItemVariantController::class, 'retractVote'])->name('items.vote.destroy');
     Route::patch('/items/{item}/status', [ItemController::class, 'toggleStatus'])->name('items.toggle-status');
     Route::delete('/items/{item}', [ItemController::class, 'destroy'])->name('items.destroy');
     Route::middleware([HandlePrecognitiveRequests::class])->group(function (): void {
         Route::post('/items', [ItemController::class, 'store'])->name('items.store');
         Route::put('/items/{item}', [ItemController::class, 'update'])->name('items.update');
+        Route::post('/items/{item}/variants', [ItemVariantController::class, 'store'])->name('items.variants.store');
+        Route::put('/items/{item}/variants/{variant}', [ItemVariantController::class, 'update'])->name('items.variants.update')->scopeBindings();
     });
 });

@@ -29,11 +29,18 @@ final class ItemListItemData extends Data
         public readonly ?string $photo_url,
         public readonly ?string $photo_thumb_url,
         public readonly string $created_at,
+        public readonly ?string $selected_variant_id,
+        public readonly ?string $selected_variant_name,
+        public readonly int $variants_count,
     ) {}
 
     public static function fromModel(Item $item): self
     {
-        $item->loadMissing(['room', 'assignedUser', 'media']);
+        $item->loadMissing(['room', 'assignedUser', 'media', 'selectedVariant:id,name']);
+
+        if (! array_key_exists('variants_count', $item->getAttributes())) {
+            $item->loadCount('variants');
+        }
 
         $unitPrice = $item->unit_price !== null ? (float) $item->unit_price : null;
 
@@ -55,6 +62,9 @@ final class ItemListItemData extends Data
             photo_url: $item->getFirstMediaUrl('photo') ?: null,
             photo_thumb_url: $item->getFirstMediaUrl('photo', 'thumb') ?: null,
             created_at: $item->created_at?->toIso8601String() ?? '',
+            selected_variant_id: $item->selected_variant_id,
+            selected_variant_name: $item->selectedVariant?->name,
+            variants_count: (int) $item->variants_count,
         );
     }
 }

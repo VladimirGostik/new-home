@@ -54,6 +54,12 @@ readonly status: App.Enums.ItemStatus,
 readonly priority: App.Enums.ItemPriority,
 readonly photo_uuid: string | null,
 };
+export type CreateItemVariantData = {
+readonly name: string,
+readonly unit_price: number | null,
+readonly url: string | null,
+readonly photo_uuid: string | null,
+};
 export type CreateRoleData = {
 readonly name: string,
 readonly permissions: string[],
@@ -103,6 +109,22 @@ readonly photo_uuid: string | null,
 readonly photo_url: string | null,
 readonly photo_thumb_url: string | null,
 readonly created_at: string,
+readonly selected_variant_id: string | null,
+readonly selected_variant_name: string | null,
+readonly variants_count: number,
+};
+export type ItemVariantListItemData = {
+readonly id: string,
+readonly name: string,
+readonly unit_price: number | null,
+readonly url: string | null,
+readonly photo_uuid: string | null,
+readonly photo_url: string | null,
+readonly photo_thumb_url: string | null,
+readonly vote_count: number,
+readonly voter_names: string[],
+readonly is_my_vote: boolean,
+readonly is_selected: boolean,
 };
 export type LanguageSwitchData = {
 readonly locale: string,
@@ -231,6 +253,13 @@ readonly priority: App.Enums.ItemPriority,
 readonly photo_uuid: string | null,
 readonly remove_photo: boolean,
 };
+export type UpdateItemVariantData = {
+readonly name: string,
+readonly unit_price: number | null,
+readonly url: string | null,
+readonly photo_uuid: string | null,
+readonly remove_photo: boolean,
+};
 export type UpdateProfileData = {
 readonly name: string,
 readonly email: string,
@@ -271,8 +300,8 @@ readonly created_at: string,
 };
 }
 namespace Enums {
-export type ItemPriority = "low" | "medium" | "high";
-export type ItemStatus = "planned" | "bought";
-export type SupportedLanguage = "sk" | "en";
+export type ItemPriority = 'low' | 'medium' | 'high';
+export type ItemStatus = 'planned' | 'bought';
+export type SupportedLanguage = 'sk' | 'en';
 }
 }

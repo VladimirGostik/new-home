@@ -68,7 +68,8 @@ final class RoomController extends Controller
         return Inertia::render('Rooms/Show', [
             'room' => RoomListItemData::fromModel($room, $this->spendingService->summaryFor($items)),
             'items' => (clone $items)
-                ->with(['room', 'assignedUser', 'media'])
+                ->with(['room', 'assignedUser', 'media', 'selectedVariant:id,name'])
+                ->withCount('variants')
                 ->shoppingOrder()
                 ->get()
                 ->map(fn (Item $item) => ItemListItemData::fromModel($item))

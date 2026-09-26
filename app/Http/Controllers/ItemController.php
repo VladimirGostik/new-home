@@ -6,10 +6,12 @@ namespace App\Http\Controllers;
 
 use App\Data\CreateItemData;
 use App\Data\ItemListItemData;
+use App\Data\ItemVariantListItemData;
 use App\Data\UpdateItemData;
 use App\Enums\ItemPriority;
 use App\Enums\ItemStatus;
 use App\Models\Item;
+use App\Models\ItemVariant;
 use App\Models\Room;
 use App\Models\User;
 use App\Navigation\NavItem;
@@ -38,7 +40,8 @@ final class ItemController extends Controller
         $currentUserId = $request->user()?->id;
 
         $baseQuery = Item::query()
-            ->with(['room', 'assignedUser', 'media'])
+            ->with(['room', 'assignedUser', 'media', 'selectedVariant:id,name'])
+            ->withCount('variants')
             ->when(! $request->filled('sort'), fn (Builder $query) => $query->shoppingOrder());
 
         $items = QueryBuilder::for($baseQuery)
@@ -96,7 +99,8 @@ final class ItemController extends Controller
 
         return Inertia::render('Items/Mine', [
             'items' => (clone $query)
-                ->with(['room', 'assignedUser', 'media'])
+                ->with(['room', 'assignedUser', 'media', 'selectedVariant:id,name'])
+                ->withCount('variants')
                 ->shoppingOrder()
                 ->get()
                 ->map(fn (Item $item) => ItemListItemData::fromModel($item))
@@ -133,6 +137,19 @@ final class ItemController extends Controller
             'userOptions' => $this->userOptions(),
             'statusOptions' => ItemStatus::options(),
             'priorityOptions' => ItemPriority::options(),
+        ]);
+    }
+
+    #[Authorize('view', 'item')]
+    public function show(Item $item, Request $request): Response
+    {
+        return Inertia::render('Items/Show', [
+            'item' => ItemListItemData::fromModel($item),
+            'variants' => $item->variants()
+                ->with(['media', 'votes.user'])
+                ->get()
+                ->map(fn (ItemVariant $variant) => ItemVariantListItemData::fromModel($variant, $item->selected_variant_id, $request->user()?->id))
+                ->all(),
         ]);
     }
 
