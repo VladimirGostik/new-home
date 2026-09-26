@@ -43,6 +43,8 @@ return [
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+            // "Zapamätať si ma" cookie lifetime in minutes (1 year).
+            'remember' => (int) env('AUTH_REMEMBER_MINUTES', 525600),
         ],
     ],
 

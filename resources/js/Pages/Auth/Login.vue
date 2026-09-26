@@ -16,7 +16,8 @@ const { canResetPassword } = defineProps<{ canResetPassword: boolean }>();
 const form = useForm('post', '/login', {
     email: '',
     password: '',
-    remember: false,
+    // Family devices: stay signed in by default (1-year remember cookie).
+    remember: true,
 });
 
 function submit() {
