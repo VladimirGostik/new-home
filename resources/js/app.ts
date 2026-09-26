@@ -7,6 +7,8 @@ import { createInertiaApp, router } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createI18n } from 'vue-i18n';
 
+import AppLayout from './Layouts/AppLayout.vue';
+
 import enApp from '../lang/en/app.json';
 import skApp from '../lang/sk/app.json';
 
@@ -30,11 +32,19 @@ function slovakPlural(choice: number, choicesLength: number): number {
 void createInertiaApp({
     title: (title: string | null) =>
         title ? `${title} - ${appName}` : appName,
-    resolve: (name: string) =>
-        resolvePageComponent(
+    // Persistent layout: the shell (sidebar, top bar, bottom tabs) stays mounted across
+    // navigations and only the page swaps — no full-screen repaint ("blink") on every click.
+    resolve: async (name: string) => {
+        const page = await resolvePageComponent(
             `./Pages/${name}.vue`,
             import.meta.glob<DefineComponent>('./Pages/**/*.vue'),
-        ),
+        );
+        const component = (page as unknown as { default: { layout?: unknown } }).default;
+        if (component.layout === undefined && !name.startsWith('Auth/')) {
+            component.layout = AppLayout;
+        }
+        return page;
+    },
     setup: ({
         el,
         App,

@@ -23,14 +23,6 @@ import BrandMark from '@/Components/BrandMark.vue';
 
 type NavigationItem = App.Data.NavigationItemData;
 
-const props = withDefaults(
-    defineProps<{
-        /** Href of the floating "+" button on mobile; `false` hides it. */
-        fab?: string | false;
-    }>(),
-    { fab: '/items/create' },
-);
-
 const { t } = useI18n();
 const page = usePage();
 
@@ -91,7 +83,27 @@ const initials = computed(() => {
         .join('');
 });
 
-const showFab = computed(() => props.fab !== false && can.value.createItems === true);
+/**
+ * Mobile "+" button per page. The layout is persistent (set in app.ts), so it derives the
+ * target from the current page instead of a prop. Pages not listed here show no button.
+ */
+const fab = computed<string | null>(() => {
+    if (can.value.createItems !== true) return null;
+    switch (page.component) {
+        case 'Dashboard':
+        case 'Items/Index':
+        case 'Items/Mine':
+        case 'Rooms/Index':
+            return '/items/create';
+        case 'Rooms/Show': {
+            const room = page.props.room as { id: string } | undefined;
+            if (!room) return '/items/create';
+            return `/items/create?room=${room.id}&return=${encodeURIComponent(`/rooms/${room.id}`)}`;
+        }
+        default:
+            return null;
+    }
+});
 
 interface ToastMessage {
     id: number;
@@ -287,8 +299,8 @@ function toastAlertClass(type: ToastMessage['type']): string {
 
         <!-- Mobile: floating add button -->
         <Link
-            v-if="showFab"
-            :href="fab as string"
+            v-if="fab"
+            :href="fab"
             :aria-label="t('add_item')"
             class="fixed right-5 bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-20 flex size-14 items-center justify-center rounded-[18px] bg-olive text-white shadow-[0_8px_20px_rgba(62,74,27,0.28)] transition-transform active:scale-95 lg:hidden"
         >
