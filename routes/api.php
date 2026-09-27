@@ -37,9 +37,17 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/items/{item}', [ItemController::class, 'show'])->name('api.items.show');
     Route::middleware([HandlePrecognitiveRequests::class])->group(function (): void {
         Route::post('/items', [ItemController::class, 'store'])->middleware('throttle:remote-image')->name('api.items.store');
+        Route::match(['put', 'patch'], '/items/{item}', [ItemController::class, 'update'])->name('api.items.update');
+        Route::put('/items/{item}/allocations', [ItemController::class, 'updateAllocations'])->name('api.items.allocations.update');
         Route::post('/items/{item}/variants', [ItemVariantController::class, 'store'])->middleware('throttle:remote-image')->name('api.items.variants.store');
+        Route::match(['put', 'patch'], '/items/{item}/variants/{variant}', [ItemVariantController::class, 'update'])->scopeBindings()->name('api.items.variants.update');
         Route::put('/items/{item}/variant-comparison', [ItemController::class, 'updateVariantComparison'])->name('api.items.variant-comparison.update');
         Route::put('/items/{item}/photo', [ItemController::class, 'updatePhoto'])->middleware('throttle:remote-image')->name('api.items.photo.update');
         Route::put('/items/{item}/variants/{variant}/photo', [ItemVariantController::class, 'updatePhoto'])->middleware('throttle:remote-image')->scopeBindings()->name('api.items.variants.photo.update');
     });
+
+    Route::delete('/items/{item}', [ItemController::class, 'destroy'])->name('api.items.destroy');
+    Route::delete('/items/{item}/variants/{variant}', [ItemVariantController::class, 'destroy'])->scopeBindings()->name('api.items.variants.destroy');
+    Route::post('/items/{item}/variants/{variant}/select', [ItemVariantController::class, 'select'])->scopeBindings()->name('api.items.variants.select');
+    Route::delete('/items/{item}/selected-variant', [ItemVariantController::class, 'unselect'])->name('api.items.variants.unselect');
 });

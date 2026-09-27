@@ -1,5 +1,5 @@
 export const SERVER_NAME = "new-home-mcp-server";
-export const SERVER_VERSION = "1.1.0";
+export const SERVER_VERSION = "1.2.0";
 
 /** Default base URL of the local docker app. */
 export const DEFAULT_API_URL = "http://localhost:8003";

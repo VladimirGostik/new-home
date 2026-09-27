@@ -38,7 +38,7 @@ final class Item extends Model implements HasMedia
     {
         return [
             'unit_price' => 'decimal:2',
-            'quantity' => 'integer',
+            'quantity' => 'decimal:2',
             'status' => ItemStatus::class,
             'priority' => ItemPriority::class,
             'variant_comparison_generated_at' => 'datetime',
@@ -91,18 +91,18 @@ final class Item extends Model implements HasMedia
     protected function inRoomFilter(Builder $query, string $value): void
     {
         if ($value === 'house') {
-            $query->whereNull('room_id');
+            $query->whereHas('allocations', fn (Builder $query) => $query->whereNull('room_id'));
 
             return;
         }
 
-        $query->where('room_id', $value);
+        $query->whereHas('allocations', fn (Builder $query) => $query->where('room_id', $value));
     }
 
-    /** @return BelongsTo<Room, $this> */
-    public function room(): BelongsTo
+    /** @return HasMany<ItemAllocation, $this> */
+    public function allocations(): HasMany
     {
-        return $this->belongsTo(Room::class);
+        return $this->hasMany(ItemAllocation::class);
     }
 
     /** @return BelongsTo<User, $this> */

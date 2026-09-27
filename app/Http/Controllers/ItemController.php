@@ -41,7 +41,7 @@ final class ItemController extends Controller
         $currentUserId = $request->user()?->id;
 
         $baseQuery = Item::query()
-            ->with(['room', 'assignedUser', 'media', 'selectedVariant:id,name'])
+            ->with(['allocations.room:id,name,sort_order', 'assignedUser', 'media', 'selectedVariant:id,name'])
             ->withCount('variants')
             ->when(! $request->filled('sort'), fn (Builder $query) => $query->shoppingOrder());
 
@@ -95,7 +95,7 @@ final class ItemController extends Controller
 
         return Inertia::render('Items/Mine', [
             'items' => (clone $query)
-                ->with(['room', 'assignedUser', 'media', 'selectedVariant:id,name'])
+                ->with(['allocations.room:id,name,sort_order', 'assignedUser', 'media', 'selectedVariant:id,name'])
                 ->withCount('variants')
                 ->shoppingOrder()
                 ->get()

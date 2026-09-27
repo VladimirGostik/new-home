@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Data\CreateItemVariantData;
+use App\Data\PatchItemVariantData;
 use App\Data\UpdateItemVariantData;
 use App\Models\Item;
 use App\Models\ItemVariant;
 use Illuminate\Support\Facades\DB;
+use Spatie\LaravelData\Optional;
 
 final readonly class ItemVariantService
 {
@@ -78,6 +80,21 @@ final readonly class ItemVariantService
 
             return $variant;
         });
+    }
+
+    /**
+     * Partial update — only the sent keys change; the rest keep their current value
+     * and the photo is left untouched, then reuses update() for the mirror + stale logic.
+     */
+    public function patch(ItemVariant $variant, PatchItemVariantData $data): ItemVariant
+    {
+        $merged = new UpdateItemVariantData(
+            name: $data->name instanceof Optional ? $variant->name : $data->name,
+            unit_price: $data->unit_price instanceof Optional ? ($variant->unit_price !== null ? (float) $variant->unit_price : null) : $data->unit_price,
+            url: $data->url instanceof Optional ? $variant->url : $data->url,
+        );
+
+        return $this->update($variant, $merged);
     }
 
     public function replacePhotoFromUrl(ItemVariant $variant, string $url): ItemVariant

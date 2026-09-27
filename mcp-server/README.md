@@ -18,6 +18,9 @@ Samostatný Node/TypeScript balík (nie je súčasťou root pnpm workspace ani r
    - „Porovnaj varianty pre sedačku.“
    - „Pridaj do kuchyne položku Kávovar za 350 €.“
    - „K variante KIVIK pri sedačke daj fotku z tohto odkazu: https://…/kivik.jpg“
+   - „Daj dlažbu do kúpeľne hore 12,5 m² a dole 8 m².“
+   - „Označ sedačku ako kúpenú.“
+   - „Zmaž položku Rohožky ku dverám.“ (Claude sa vždy najprv opýta, či naozaj)
 
 Heslo sa ukladá bezpečne v systéme (Keychain / Správca poverení). Ak si ho zmeníš v aplikácii, zmeň ho aj v Nastaveniach → Rozšírenia → Náš nový dom.
 
@@ -84,13 +87,24 @@ Predvolená adresa v balíku je produkcia (`user_config.api_url`); lokálny výv
 
 | Nástroj                            | Čo robí                                                               |
 | ---------------------------------- | --------------------------------------------------------------------- |
-| `new_home_list_rooms`              | zoznam miestností (+ „Celý dom“ = položky bez miestnosti)             |
-| `new_home_list_items`              | položky s filtrom (miestnosť podľa názvu/id/`house`, hľadanie, stav)  |
-| `new_home_get_item`                | detail položky: varianty, hlasy, vybraná varianta, uložené porovnanie |
-| `new_home_create_item`             | nová položka (miestnosť názvom alebo id, ceny v EUR)                  |
-| `new_home_add_item_variant`        | nová varianta k položke                                               |
-| `new_home_save_variant_comparison` | uloží (prepíše) porovnanie variantov v Markdowne                      |
-| `new_home_set_photo`               | nastaví fotku položky alebo varianty z priameho odkazu na obrázok     |
+| `new_home_list_rooms`              | zoznam miestností (+ „Celý dom“ = položky bez konkrétnej miestnosti)            |
+| `new_home_list_items`              | položky s filtrom (miestnosť názvom/id/`house`, hľadanie, stav); podiel miestnosti |
+| `new_home_get_item`                | detail: rozdelenie po miestnostiach, varianty, hlasy, vybraná varianta, porovnanie |
+| `new_home_create_item`             | nová položka – jedna miestnosť + množstvo, alebo viac miestností (`rooms[]`)     |
+| `new_home_set_item_rooms`          | nastaví miestnosti a desatinné množstvá položky (celý zoznam naraz)              |
+| `new_home_update_item`             | úprava položky (názov, poznámka, cena, odkaz, zodpovedný, stav, priorita)        |
+| `new_home_delete_item`             | natrvalo zmaže položku – **len po potvrdení** používateľom                       |
+| `new_home_add_item_variant`        | nová varianta k položke                                                          |
+| `new_home_update_variant`          | úprava varianty (názov, cena, odkaz)                                             |
+| `new_home_delete_variant`          | natrvalo zmaže variantu – **len po potvrdení** používateľom                      |
+| `new_home_select_variant`          | označí variantu ako vybranú (položka preberie jej cenu, odkaz a fotku)           |
+| `new_home_unselect_variant`        | zruší výber varianty (cena, odkaz a fotka položky sa vymažú)                     |
+| `new_home_save_variant_comparison` | uloží (prepíše) porovnanie variantov v Markdowne                                 |
+| `new_home_set_photo`               | nastaví fotku položky alebo varianty z priameho odkazu na obrázok                |
+
+**Viac miestností a desatinné množstvá:** jedna položka (jedna cena za jednotku) môže byť rozdelená do viacerých miestností, každá s vlastným množstvom – napr. dlažba 24,90 €/m²: Kúpeľňa hore 12,5 m² + Kúpeľňa dole 8 m² + Celý dom 2 m² (rezerva). Cena sa počíta za každú miestnosť zvlášť (zaokrúhlená na centy) a sčíta. `new_home_set_item_rooms` vždy nahrádza celý zoznam, takže pri pridaní miestnosti Claude najprv načíta aktuálne rozdelenie.
+
+**Mazanie** položiek a variantov je nevratné a vyžaduje presné ID; Claude ho urobí až po tvojom výslovnom potvrdení. Mazať môžu len účty s oprávnením na mazanie (admin).
 
 Prompt `compare_item_variants` (argument: názov alebo id položky) prevedie Clauda celým porovnaním – načíta varianty, porovná ich (aj cez odkazy do obchodov), napíše odporúčanie po slovensky a uloží ho do aplikácie.
 
@@ -104,4 +118,8 @@ Ak má položka už vybranú variantu, fotka položky sa berie z nej – vtedy t
 - „K sedačke pridaj variantu IKEA KIVIK za 799 € s odkazom https://www.ikea.com/sk/…“
 - „Porovnaj varianty sedačky a ulož odporúčanie.“ (alebo `/mcp__new-home__compare_item_variants Sedačka`)
 - „Koľko ešte minieme za všetko plánované v Celom dome?“
+- „Daj dlažbu do kúpeľne hore 12,5 m² a dole 8 m², cena 24,90 € za m².“
+- „Pridaj ešte 2 m² dlažby do Celého domu ako rezervu.“
+- „Zmeň cenu varianty KIVIK na 749 €.“ / „Vyberte pre sedačku KIVIK.“
+- „Zmaž položku Rohožky ku dverám.“
 - „Pridaj variantu z tohto odkazu do e-shopu a zober z neho aj fotku.“ (Claude si zo stránky vytiahne obrázok)

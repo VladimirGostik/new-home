@@ -21,7 +21,10 @@ async function main(): Promise<void> {
         {
             instructions:
                 "Tools for the family shopping list of a new house (Room → Item → Variant). The family speaks Slovak; answer in Slovak. " +
-                "Items without a room belong to 'Celý dom'. Prices are EUR. To compare variants, use the compare_item_variants workflow: " +
+                "Items without a room belong to 'Celý dom'. An item can be split across several rooms with DECIMAL quantities (e.g. tiles: Kúpeľňa hore 12.5 m² + Kúpeľňa dole 8 m²): " +
+                "create with rooms[] or change with new_home_set_item_rooms (full replacement — read current rows first). Prices are EUR per unit; totals are per-room line totals summed. " +
+                "Destructive tools (new_home_delete_item, new_home_delete_variant) need an explicit user confirmation naming the exact item/variant first; select/unselect a variant only when the user asks. " +
+                "To compare variants, use the compare_item_variants workflow: " +
                 "new_home_get_item → analyse all variants → new_home_save_variant_comparison. " +
                 "Photos are added by DIRECT image URL (photo_url, e.g. the shop's og:image), never by the product page URL; use new_home_set_photo for existing items/variants. " +
                 "If an item already has a selected variant, its photo comes from that variant — set the photo on the variant.",

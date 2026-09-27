@@ -3,9 +3,9 @@
   "manifest_version": "0.3",
   "name": "new-home",
   "display_name": "Náš nový dom",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Spravuj rodinný nákupný zoznam do nového domu: izby, položky, varianty a porovnanie variantov s odporúčaním.",
-  "long_description": "Rozšírenie prepojí Claude s aplikáciou **Náš nový dom**. Claude vie vypísať izby a položky, pridať novú položku alebo variantu (aj s fotkou z odkazu na obrázok z e-shopu) a porovnať varianty položky (cena, parametre, výhody a nevýhody) – porovnanie s odporúčaním uloží do aplikácie, kde ho uvidí celá rodina. Prihlasuješ sa vlastným e-mailom a heslom z aplikácie.",
+  "long_description": "Rozšírenie prepojí Claude s aplikáciou **Náš nový dom**. Claude vie vypísať izby a položky, pridať, upraviť alebo zmazať položku či variantu, rozdeliť položku do viacerých izieb (napr. dlažba 12,5 m² hore a 8 m² dole), vybrať variantu, nastaviť fotku z odkazu na obrázok a porovnať varianty (cena, parametre, výhody a nevýhody) – porovnanie s odporúčaním uloží do aplikácie, kde ho uvidí celá rodina. Prihlasuješ sa vlastným e-mailom a heslom z aplikácie.",
   "author": {
     "name": "Vladimír Gostík"
   },
@@ -39,7 +39,7 @@
     },
     {
       "name": "new_home_create_item",
-      "description": "Pridá novú položku do nákupného zoznamu (voliteľne s fotkou z odkazu na obrázok)."
+      "description": "Pridá novú položku (aj rozdelenú do viacerých izieb s desatinným množstvom, voliteľne s fotkou)."
     },
     {
       "name": "new_home_add_item_variant",
@@ -52,6 +52,34 @@
     {
       "name": "new_home_set_photo",
       "description": "Nastaví fotku položky alebo varianty z priameho odkazu na obrázok."
+    },
+    {
+      "name": "new_home_set_item_rooms",
+      "description": "Nastaví, v ktorých izbách je položka a koľko v každej (desatinné množstvo, napr. m²)."
+    },
+    {
+      "name": "new_home_update_item",
+      "description": "Upraví položku (názov, poznámka, cena, odkaz, zodpovedný, stav, priorita)."
+    },
+    {
+      "name": "new_home_delete_item",
+      "description": "Natrvalo zmaže položku (vždy až po potvrdení)."
+    },
+    {
+      "name": "new_home_update_variant",
+      "description": "Upraví variantu (názov, cena, odkaz)."
+    },
+    {
+      "name": "new_home_delete_variant",
+      "description": "Natrvalo zmaže variantu (vždy až po potvrdení)."
+    },
+    {
+      "name": "new_home_select_variant",
+      "description": "Označí variantu ako vybranú pre položku."
+    },
+    {
+      "name": "new_home_unselect_variant",
+      "description": "Zruší výber varianty pri položke (cena, odkaz a fotka položky sa vymažú)."
     }
   ],
   "prompts": [
@@ -61,7 +89,7 @@
       "arguments": [
         "item"
       ],
-      "text": "Porovnaj varianty položky „${arguments.item}\" v aplikácii Náš nový dom a ulož porovnanie.\n\nPostup:\n1. Zavolaj `new_home_get_item` s item=\"${arguments.item}\". Ak názov nie je jednoznačný, použi `new_home_list_items` (search) a opýtaj sa ma, ktorú položku myslím.\n2. Ak má položka menej ako 2 varianty, zastav sa a povedz mi to (porovnanie sa nedá uložiť). Ak už existuje porovnanie a nie je zastarané (is_stale=false), opýtaj sa, či ho mám prepísať.\n3. Porovnaj VŠETKY varianty: cena za kus aj spolu za množstvo položky, pomer cena/výkon, kľúčové parametre (rozmery, materiál, záruka, dodanie, dostupnosť), výhody a nevýhody. Ak majú varianty odkazy a máš webové nástroje, otvor ich a over parametre a aktuálne ceny; neoverené údaje jasne označ.\n4. Napíš porovnanie po slovensky v Markdowne: krátky úvod, tabuľka (varianta | cena/ks | spolu | hlavné parametre), Výhody / Nevýhody pre každú variantu, aktuálne hlasy rodiny a na konci sekcia „## Odporúčanie\" s JEDNOU odporúčanou variantou a zdôvodnením (plus alternatívu, kedy dáva zmysel).\n5. Ulož ho cez `new_home_save_variant_comparison` a stručne mi zhrň odporúčanie."
+      "text": "Porovnaj varianty položky „${arguments.item}\" v aplikácii Náš nový dom a ulož porovnanie.\n\nPostup:\n1. Zavolaj `new_home_get_item` s item=\"${arguments.item}\". Ak názov nie je jednoznačný, použi `new_home_list_items` (search) a opýtaj sa ma, ktorú položku myslím.\n2. Ak má položka menej ako 2 varianty, zastav sa a povedz mi to (porovnanie sa nedá uložiť). Ak už existuje porovnanie a nie je zastarané (is_stale=false), opýtaj sa, či ho mám prepísať.\n3. Porovnaj VŠETKY varianty: cena za kus aj spolu za celé množstvo položky (môže byť desatinné a rozdelené po miestnostiach, napr. m²), pomer cena/výkon, kľúčové parametre (rozmery, materiál, záruka, dodanie, dostupnosť), výhody a nevýhody. Ak majú varianty odkazy a máš webové nástroje, otvor ich a over parametre a aktuálne ceny; neoverené údaje jasne označ.\n4. Napíš porovnanie po slovensky v Markdowne: krátky úvod, tabuľka (varianta | cena/ks | spolu | hlavné parametre), Výhody / Nevýhody pre každú variantu, aktuálne hlasy rodiny a na konci sekcia „## Odporúčanie\" s JEDNOU odporúčanou variantou a zdôvodnením (plus alternatívu, kedy dáva zmysel).\n5. Ulož ho cez `new_home_save_variant_comparison` a stručne mi zhrň odporúčanie."
     }
   ],
   "keywords": [

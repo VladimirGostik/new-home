@@ -37,6 +37,40 @@ final class ItemFactory extends Factory
         ];
     }
 
+    public function configure(): static
+    {
+        return $this->afterCreating(function (Item $item): void {
+            if ($item->allocations()->doesntExist()) {
+                $item->allocations()->create([
+                    'room_id' => $item->room_id,
+                    'quantity' => $item->quantity,
+                ]);
+            }
+        });
+    }
+
+    /**
+     * Replaces the default single allocation with the given rows, and keeps the
+     * legacy room_id / quantity mirror in sync with the same rule as the service.
+     *
+     * @param  list<array{room_id: ?string, quantity: float}>  $allocations
+     */
+    public function allocatedTo(array $allocations): self
+    {
+        return $this->afterCreating(function (Item $item) use ($allocations): void {
+            $item->allocations()->delete();
+
+            foreach ($allocations as $allocation) {
+                $item->allocations()->create($allocation);
+            }
+
+            $item->update([
+                'room_id' => count($allocations) === 1 ? $allocations[0]['room_id'] : null,
+                'quantity' => array_sum(array_column($allocations, 'quantity')),
+            ]);
+        });
+    }
+
     public function withVariantComparison(bool $stale = false): self
     {
         return $this->state(fn (): array => [

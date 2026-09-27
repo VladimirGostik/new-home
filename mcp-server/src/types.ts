@@ -8,15 +8,31 @@ export interface Room {
     name: string;
 }
 
+/** One room share of an item. room_id null = "Celý dom". quantity is decimal (e.g. 12.5 m²). */
+export interface ItemAllocation {
+    id: string;
+    room_id: string | null;
+    room_name: string | null;
+    quantity: number;
+    /** round(unit_price × quantity, 2); null when the item has no price. */
+    line_total: number | null;
+}
+
 export interface Item {
     id: string;
     name: string;
     note: string | null;
+    /** Legacy: the room when the item is in exactly one room, else null. */
     room_id: string | null;
+    /** Legacy: single room name, or names joined ", " for multi-room items; null = Celý dom. */
     room_name: string | null;
     unit_price: number | null;
+    /** Decimal total quantity = Σ allocation quantities. */
     quantity: number;
+    /** Σ per-room line totals. */
     total_price: number | null;
+    /** Per-room breakdown (API ≥ allocations release; optional for older backends). */
+    allocations?: ItemAllocation[];
     url: string | null;
     assigned_user_id: string | null;
     assigned_user_name: string | null;

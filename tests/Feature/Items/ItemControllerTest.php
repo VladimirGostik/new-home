@@ -202,7 +202,7 @@ final class ItemControllerTest extends TestCase
 
         $response = $this->actingAs($user)->put("/items/{$item->id}", [
             'name' => 'New name',
-            'quantity' => $item->quantity,
+            'allocations' => [['room_id' => null, 'quantity' => (float) $item->quantity]],
         ]);
 
         $response->assertRedirect(route('items.index'));
@@ -309,8 +309,7 @@ final class ItemControllerTest extends TestCase
         $response = $this->actingAs($user)->put("/items/{$item->id}", [
             'name' => 'New name',
             'note' => 'New note',
-            'room_id' => $room->id,
-            'quantity' => 4,
+            'allocations' => [['room_id' => $room->id, 'quantity' => 4]],
             'assigned_user_id' => null,
             'status' => 'bought',
             'priority' => 'high',
@@ -324,7 +323,7 @@ final class ItemControllerTest extends TestCase
         $this->assertSame('New name', $fresh->name);
         $this->assertSame('New note', $fresh->note);
         $this->assertSame($room->id, $fresh->room_id);
-        $this->assertSame(4, $fresh->quantity);
+        $this->assertSame('4.00', $fresh->quantity);
         $this->assertSame(ItemStatus::Bought, $fresh->status);
         $this->assertSame('10.00', $fresh->unit_price);
         $this->assertSame('https://old.test', $fresh->url);
@@ -343,7 +342,7 @@ final class ItemControllerTest extends TestCase
 
         $response = $this->actingAs($user)->put("/items/{$item->id}", [
             'name' => $item->name,
-            'quantity' => $item->quantity,
+            'allocations' => [['room_id' => null, 'quantity' => (float) $item->quantity]],
             'remove_photo' => true,
         ]);
 
@@ -365,7 +364,7 @@ final class ItemControllerTest extends TestCase
 
         $response = $this->actingAs($user)->put("/items/{$item->id}", [
             'name' => $item->name,
-            'quantity' => $item->quantity,
+            'allocations' => [['room_id' => null, 'quantity' => (float) $item->quantity]],
             'unit_price' => 55,
             'url' => 'https://manual.test',
             'photo_uuid' => $media->uuid,
@@ -445,10 +444,11 @@ final class ItemControllerTest extends TestCase
 
     public function test_deleting_room_nulls_item_room_id(): void
     {
+        $user = $this->userWithPermission('delete rooms');
         $room = Room::factory()->create();
         $item = Item::factory()->create(['room_id' => $room->id]);
 
-        $room->delete();
+        $this->actingAs($user)->delete("/rooms/{$room->id}")->assertRedirect();
 
         $this->assertNull($item->fresh()->room_id);
     }

@@ -8,7 +8,9 @@ use App\Data\CreateItemData;
 use App\Data\ItemDetailData;
 use App\Data\ItemListItemData;
 use App\Data\ItemVariantComparisonData;
+use App\Data\PatchItemData;
 use App\Data\SaveItemVariantComparisonData;
+use App\Data\SyncItemAllocationsData;
 use App\Data\UpdatePhotoFromUrlData;
 use App\Http\Controllers\Controller;
 use App\Models\Item;
@@ -17,6 +19,7 @@ use App\Utils\AllowedFilter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Routing\Attributes\Controllers\Authorize;
 use Knuckles\Scribe\Attributes\Authenticated;
 use Knuckles\Scribe\Attributes\Endpoint;
@@ -37,7 +40,7 @@ final class ItemController extends Controller
     #[Authorize('viewAny', Item::class)]
     #[Endpoint('List items', 'Returns a paginated list of items with optional filtering and sorting.')]
     #[QueryParam('filter[search]', 'string', 'Search by name.', required: false, example: 'milk')]
-    #[QueryParam('filter[room]', 'string', 'Filter by room UUID, or "house" for items without a room.', required: false, example: 'house')]
+    #[QueryParam('filter[room]', 'string', 'Filter by items having an allocation in the room UUID, or "house" for a Celý dom allocation.', required: false, example: 'house')]
     #[QueryParam('filter[status]', 'string', 'Filter by exact status.', required: false, example: 'planned')]
     #[QueryParam('sort', 'string', 'Sort field. Prefix with `-` for descending. Allowed: name, created_at, priority, status.', required: false, example: '-created_at')]
     #[QueryParam('per_page', 'integer', 'Number of results per page (default 25, clamped 1-100).', required: false, example: 25)]
@@ -46,7 +49,7 @@ final class ItemController extends Controller
     public function index(Request $request): JsonResponse
     {
         $baseQuery = Item::query()
-            ->with(['room', 'assignedUser', 'media', 'selectedVariant:id,name'])
+            ->with(['allocations.room:id,name,sort_order', 'assignedUser', 'media', 'selectedVariant:id,name'])
             ->withCount('variants')
             ->when(! $request->filled('sort'), fn (Builder $query) => $query->shoppingOrder());
 
@@ -81,7 +84,7 @@ final class ItemController extends Controller
     }
 
     #[Authorize('create', Item::class)]
-    #[Endpoint('Create item', 'Creates a new shopping-list item.')]
+    #[Endpoint('Create item', 'Creates a new shopping-list item. Rooms via allocations[] (list of {room_id, quantity}), or the legacy room_id + quantity for a single room.')]
     #[Response(null, 422, 'Validation error')]
     #[Response(null, 401, 'Unauthenticated')]
     #[Response(null, 403, 'Unauthorized')]
@@ -90,6 +93,47 @@ final class ItemController extends Controller
         $item = $this->itemService->create($data);
 
         return response()->json(ItemListItemData::fromModel($item), 201);
+    }
+
+    #[Authorize('update', 'item')]
+    #[Endpoint('Update item', 'Partial update — only the sent fields change. Rooms/quantities are not part of this endpoint; use "Set item allocations". Fails if unit_price or url is sent while the item has a selected variant.')]
+    #[UrlParam('item', 'string', 'The UUID of the item.', example: '0195d123-0000-7000-0000-000000000001')]
+    #[Response(null, 422, 'Validation error, empty body, or price/url sent while a variant is selected')]
+    #[Response(null, 401, 'Unauthenticated')]
+    #[Response(null, 403, 'Unauthorized')]
+    #[Response(null, 404, 'Item not found')]
+    public function update(PatchItemData $data, Item $item): JsonResponse
+    {
+        $item = $this->itemService->patch($item, $data);
+
+        return response()->json(ItemListItemData::fromModel($item));
+    }
+
+    #[Authorize('delete', 'item')]
+    #[Endpoint('Delete item', 'Deletes an item together with its variants, votes and room allocations.')]
+    #[UrlParam('item', 'string', 'The UUID of the item.', example: '0195d123-0000-7000-0000-000000000001')]
+    #[Response(null, 401, 'Unauthenticated')]
+    #[Response(null, 403, 'Unauthorized')]
+    #[Response(null, 404, 'Item not found')]
+    public function destroy(Item $item): HttpResponse
+    {
+        $this->itemService->delete($item);
+
+        return response()->noContent();
+    }
+
+    #[Authorize('update', 'item')]
+    #[Endpoint('Set item allocations', 'Full replacement of an item\'s room allocations (list of {room_id, quantity}, room_id null = Celý dom). Idempotent.')]
+    #[UrlParam('item', 'string', 'The UUID of the item.', example: '0195d123-0000-7000-0000-000000000001')]
+    #[Response(null, 422, 'Validation error')]
+    #[Response(null, 401, 'Unauthenticated')]
+    #[Response(null, 403, 'Unauthorized')]
+    #[Response(null, 404, 'Item not found')]
+    public function updateAllocations(SyncItemAllocationsData $data, Item $item): JsonResponse
+    {
+        $item = $this->itemService->syncAllocations($item, $data->allocations);
+
+        return response()->json(ItemListItemData::fromModel($item));
     }
 
     #[Authorize('update', 'item')]

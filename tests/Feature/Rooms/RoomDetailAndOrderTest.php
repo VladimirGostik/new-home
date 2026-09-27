@@ -38,6 +38,25 @@ final class RoomDetailAndOrderTest extends TestCase
             );
     }
 
+    public function test_show_lists_multi_room_item_with_room_summary_showing_only_that_rooms_share(): void
+    {
+        $user = $this->userWithPermission('view rooms');
+        $roomA = Room::factory()->create();
+        $roomB = Room::factory()->create();
+        Item::factory()->allocatedTo([
+            ['room_id' => $roomA->id, 'quantity' => 12.5],
+            ['room_id' => $roomB->id, 'quantity' => 8],
+        ])->create(['unit_price' => 2]);
+
+        $this->withoutVite()->actingAs($user)->get("/rooms/{$roomA->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('items', 1)
+                ->where('items.0.total_price', 41)
+                ->where('room.summary.total', 25),
+            );
+    }
+
     public function test_index_includes_per_room_summary_and_whole_house(): void
     {
         $user = $this->userWithPermission('view rooms');
@@ -51,6 +70,25 @@ final class RoomDetailAndOrderTest extends TestCase
                 ->where('rooms.data.0.summary.total', 20)
                 ->where('wholeHouse.items_count', 1)
                 ->where('wholeHouse.total', 3),
+            );
+    }
+
+    public function test_index_shares_multi_room_item_total_across_room_rows_and_whole_house(): void
+    {
+        $user = $this->userWithPermission('view rooms');
+        $roomA = Room::factory()->create(['sort_order' => 0]);
+        $roomB = Room::factory()->create(['sort_order' => 1]);
+        Item::factory()->allocatedTo([
+            ['room_id' => $roomA->id, 'quantity' => 3],
+            ['room_id' => $roomB->id, 'quantity' => 1],
+            ['room_id' => null, 'quantity' => 1],
+        ])->create(['unit_price' => 10]);
+
+        $this->withoutVite()->actingAs($user)->get('/rooms')
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('rooms.data.0.summary.total', 30)
+                ->where('rooms.data.1.summary.total', 10)
+                ->where('wholeHouse.total', 10),
             );
     }
 

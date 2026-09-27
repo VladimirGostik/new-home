@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Data;
 
 use App\Models\Item;
+use App\Models\ItemAllocation;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 #[TypeScript]
 final class ItemListItemData extends Data
 {
+    /** @param list<ItemAllocationData> $allocations */
     public function __construct(
         public readonly string $id,
         public readonly string $name,
@@ -18,8 +20,9 @@ final class ItemListItemData extends Data
         public readonly ?string $room_id,
         public readonly ?string $room_name,
         public readonly ?float $unit_price,
-        public readonly int $quantity,
+        public readonly float $quantity,
         public readonly ?float $total_price,
+        public readonly array $allocations,
         public readonly ?string $url,
         public readonly ?string $assigned_user_id,
         public readonly ?string $assigned_user_name,
@@ -36,7 +39,7 @@ final class ItemListItemData extends Data
 
     public static function fromModel(Item $item): self
     {
-        $item->loadMissing(['room', 'assignedUser', 'media', 'selectedVariant:id,name']);
+        $item->loadMissing(['allocations.room:id,name,sort_order', 'assignedUser', 'media', 'selectedVariant:id,name']);
 
         if (! array_key_exists('variants_count', $item->getAttributes())) {
             $item->loadCount('variants');
@@ -44,15 +47,47 @@ final class ItemListItemData extends Data
 
         $unitPrice = $item->unit_price !== null ? (float) $item->unit_price : null;
 
+        $allocations = $item->allocations
+            ->sortBy(fn (ItemAllocation $allocation): array => [
+                $allocation->room !== null ? 0 : 1,
+                // @phpstan-ignore nullsafe.neverNull (room_id is nullable — Celý dom rows have no room)
+                $allocation->room?->sort_order ?? 0,
+                // @phpstan-ignore nullsafe.neverNull (room_id is nullable — Celý dom rows have no room)
+                $allocation->room?->name ?? '',
+            ])
+            ->values();
+
+        /** @var list<ItemAllocationData> $allocationData */
+        $allocationData = $allocations
+            ->map(fn (ItemAllocation $allocation) => ItemAllocationData::fromModel($allocation, $unitPrice))
+            ->values()
+            ->all();
+
+        $quantity = round((float) $allocations->sum(fn (ItemAllocation $allocation): float => (float) $allocation->quantity), 2);
+
+        $totalPrice = $unitPrice !== null
+            ? round(array_sum(array_map(fn (ItemAllocationData $allocation): float => $allocation->line_total ?? 0.0, $allocationData)), 2)
+            : null;
+
+        $firstAllocation = $allocations->first();
+
+        $roomId = $allocations->count() === 1 ? $firstAllocation?->room_id : null;
+
+        $roomName = $allocations->count() === 1
+            ? $firstAllocation?->room?->name
+            // @phpstan-ignore nullsafe.neverNull (room_id is nullable — Celý dom rows have no room)
+            : $allocations->map(fn (ItemAllocation $allocation): string => $allocation->room?->name ?? __('app.whole_house'))->implode(', ');
+
         return new self(
             id: $item->id,
             name: $item->name,
             note: $item->note,
-            room_id: $item->room_id,
-            room_name: $item->room?->name,
+            room_id: $roomId,
+            room_name: $roomName,
             unit_price: $unitPrice,
-            quantity: $item->quantity,
-            total_price: $unitPrice !== null ? round($unitPrice * $item->quantity, 2) : null,
+            quantity: $quantity,
+            total_price: $totalPrice,
+            allocations: $allocationData,
             url: $item->url,
             assigned_user_id: $item->assigned_user_id,
             assigned_user_name: $item->assignedUser?->name,

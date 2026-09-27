@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { PhotoIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { HandThumbUpIcon } from '@heroicons/vue/24/solid';
 import { formatEur } from '@/Composables/useMoney';
+import { formatQuantity, sumLineTotals, sumQuantity } from '@/utils/quantity';
 
-defineProps<{
+const props = defineProps<{
     variant: App.Data.ItemVariantListItemData;
-    quantity: number;
+    allocations: App.Data.ItemAllocationData[];
     isLeader: boolean;
     isTie: boolean;
     votePending: boolean;
@@ -25,9 +27,13 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-function round2(value: number): number {
-    return Math.round(value * 100) / 100;
-}
+const qty = computed(() => sumQuantity(props.allocations.map((allocation) => allocation.quantity)));
+const total = computed(() =>
+    sumLineTotals(
+        props.variant.unit_price,
+        props.allocations.map((allocation) => allocation.quantity),
+    ),
+);
 
 function hostname(url: string): string {
     try {
@@ -51,34 +57,28 @@ function hostname(url: string): string {
                 rel="noopener noreferrer"
                 class="flex size-16 shrink-0 overflow-hidden rounded-xl bg-oak-soft text-oak-deep"
             >
-                <img
-                    :src="variant.photo_thumb_url"
-                    :alt="variant.name"
-                    loading="lazy"
-                    class="size-full object-cover"
-                />
+                <img :src="variant.photo_thumb_url" :alt="variant.name" loading="lazy" class="size-full object-cover" />
             </a>
-            <span
-                v-else
-                class="flex size-16 shrink-0 items-center justify-center rounded-xl bg-oak-soft text-oak-deep"
-            >
+            <span v-else class="flex size-16 shrink-0 items-center justify-center rounded-xl bg-oak-soft text-oak-deep">
                 <PhotoIcon class="size-6" />
             </span>
 
             <div class="min-w-0 flex-1">
                 <p class="font-semibold break-words">{{ variant.name }}</p>
-                <p class="text-[15px] font-semibold tabular-nums">{{ variant.unit_price === null ? t('no_price') : formatEur(variant.unit_price) }}</p>
-                <p
-                    v-if="quantity > 1 && variant.unit_price !== null"
-                    class="text-[13px] text-muted"
-                >{{ t('variant_total_for_qty', { qty: quantity, total: formatEur(round2(variant.unit_price * quantity)) }) }}</p>
+                <p class="text-[15px] font-semibold tabular-nums">
+                    {{ variant.unit_price === null ? t('no_price') : formatEur(variant.unit_price) }}
+                </p>
+                <p v-if="qty !== 1 && variant.unit_price !== null" class="text-[13px] text-muted">
+                    {{ t('variant_total_for_qty', { qty: formatQuantity(qty), total: formatEur(total) }) }}
+                </p>
                 <a
                     v-if="variant.url"
                     :href="variant.url"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="inline-flex min-h-11 items-center text-sm text-muted underline"
-                >{{ hostname(variant.url) }}</a>
+                    >{{ hostname(variant.url) }}</a
+                >
             </div>
 
             <div class="flex shrink-0 gap-1">
@@ -103,33 +103,38 @@ function hostname(url: string): string {
             </div>
         </div>
 
-        <div
-            v-if="variant.is_selected || isLeader"
-            class="flex flex-wrap gap-1.5"
-        >
+        <div v-if="variant.is_selected || isLeader" class="flex flex-wrap gap-1.5">
             <span
                 v-if="variant.is_selected"
                 class="inline-flex h-5.5 items-center rounded-full bg-olive px-2 text-xs text-white"
-            >{{ t('variant_selected_badge') }}</span>
+                >{{ t('variant_selected_badge') }}</span
+            >
             <span
                 v-if="isLeader && !isTie"
                 class="inline-flex h-5.5 items-center rounded-full bg-oak-soft px-2 text-xs text-oak-ink"
-            >{{ t('variant_leading') }}</span>
+                >{{ t('variant_leading') }}</span
+            >
             <span
                 v-if="isLeader && isTie"
                 class="inline-flex h-5.5 items-center rounded-full bg-oak-soft px-2 text-xs text-oak-ink"
-            >{{ t('variant_tied') }}</span>
+                >{{ t('variant_tied') }}</span
+            >
         </div>
 
         <p class="text-[13px] text-muted">
-            {{ t('votes_count', variant.vote_count) }}<template v-if="variant.voter_names.length">: {{ variant.voter_names.join(', ') }}</template>
+            {{ t('votes_count', variant.vote_count)
+            }}<template v-if="variant.voter_names.length">: {{ variant.voter_names.join(', ') }}</template>
         </p>
 
         <div class="flex flex-wrap gap-2">
             <button
                 type="button"
                 :aria-pressed="variant.is_my_vote"
-                :aria-label="variant.is_my_vote ? t('retract_vote_named', { name: variant.name }) : t('vote_for_named', { name: variant.name })"
+                :aria-label="
+                    variant.is_my_vote
+                        ? t('retract_vote_named', { name: variant.name })
+                        : t('vote_for_named', { name: variant.name })
+                "
                 :disabled="votePending"
                 class="inline-flex h-11 items-center gap-1.5 rounded-xl px-4 text-sm font-medium"
                 :class="variant.is_my_vote ? 'bg-olive text-white' : 'border border-line bg-white'"
@@ -146,10 +151,7 @@ function hostname(url: string): string {
                 class="btn btn-outline btn-primary h-11 rounded-xl"
                 @click="emit('select')"
             >
-                <span
-                    v-if="selectBusy"
-                    class="loading loading-spinner loading-xs"
-                />
+                <span v-if="selectBusy" class="loading loading-spinner loading-xs" />
                 {{ t('select_this_variant') }}
             </button>
             <button

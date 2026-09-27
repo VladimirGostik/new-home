@@ -54,6 +54,7 @@ readonly status: App.Enums.ItemStatus,
 readonly priority: App.Enums.ItemPriority,
 readonly photo_uuid: string | null,
 readonly photo_url: string | null,
+readonly allocations: App.Data.ItemAllocationInputData[] | null,
 };
 export type CreateItemVariantData = {
 readonly name: string,
@@ -85,6 +86,17 @@ readonly unassigned_count: number,
 readonly rooms: App.Data.SpendGroupData[],
 readonly people: App.Data.SpendGroupData[],
 };
+export type ItemAllocationData = {
+readonly id: string,
+readonly room_id: string | null,
+readonly room_name: string | null,
+readonly quantity: number,
+readonly line_total: number | null,
+};
+export type ItemAllocationInputData = {
+readonly quantity: number,
+readonly room_id: string | null,
+};
 export type ItemDetailData = {
 readonly item: App.Data.ItemListItemData,
 readonly variants: App.Data.ItemVariantListItemData[],
@@ -107,6 +119,7 @@ readonly room_name: string | null,
 readonly unit_price: number | null,
 readonly quantity: number,
 readonly total_price: number | null,
+readonly allocations: App.Data.ItemAllocationData[],
 readonly url: string | null,
 readonly assigned_user_id: string | null,
 readonly assigned_user_name: string | null,
@@ -203,6 +216,20 @@ readonly password_confirmation: string,
 export type PasswordResetLinkData = {
 readonly email: string,
 };
+export type PatchItemData = {
+readonly name: undefined | string,
+readonly note: undefined | string | null,
+readonly unit_price: undefined | number | null,
+readonly url: undefined | string | null,
+readonly assigned_user_id: undefined | string | null,
+readonly status: App.Enums.ItemStatus | undefined,
+readonly priority: App.Enums.ItemPriority | undefined,
+};
+export type PatchItemVariantData = {
+readonly name: undefined | string,
+readonly unit_price: undefined | number | null,
+readonly url: undefined | string | null,
+};
 export type ReorderRoomsData = {
 readonly ids: string[],
 };
@@ -259,18 +286,20 @@ readonly remaining_total: number,
 export type StoreTemporaryUploadData = {
 readonly file: File,
 };
+export type SyncItemAllocationsData = {
+readonly allocations: App.Data.ItemAllocationInputData[],
+};
 export type UpdateItemData = {
 readonly name: string,
 readonly note: string | null,
-readonly room_id: string | null,
 readonly unit_price: number | null,
-readonly quantity: number,
 readonly url: string | null,
 readonly assigned_user_id: string | null,
 readonly status: App.Enums.ItemStatus,
 readonly priority: App.Enums.ItemPriority,
 readonly photo_uuid: string | null,
 readonly remove_photo: boolean,
+readonly allocations: App.Data.ItemAllocationInputData[],
 };
 export type UpdateItemVariantData = {
 readonly name: string,

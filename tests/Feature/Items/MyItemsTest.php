@@ -115,7 +115,13 @@ final class MyItemsTest extends TestCase
 
         foreach (['https://evil.test', '//evil.test', '/\\evil.test'] as $target) {
             $this->actingAs($user)
-                ->put("/items/{$item->id}", ['name' => 'X', 'quantity' => 1, 'status' => 'planned', 'priority' => 'low', 'return_to' => $target])
+                ->put("/items/{$item->id}", [
+                    'name' => 'X',
+                    'allocations' => [['room_id' => null, 'quantity' => 1]],
+                    'status' => 'planned',
+                    'priority' => 'low',
+                    'return_to' => $target,
+                ])
                 ->assertRedirect(route('items.index'));
         }
     }

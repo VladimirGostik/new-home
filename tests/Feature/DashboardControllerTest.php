@@ -133,4 +133,76 @@ final class DashboardControllerTest extends TestCase
                 ->where('dashboard.totals.total', 300),
             );
     }
+
+    public function test_multi_room_item_total_equals_sum_of_its_room_shares(): void
+    {
+        $user = $this->adminUser();
+        $roomA = Room::factory()->create(['sort_order' => 0]);
+        $roomB = Room::factory()->create(['sort_order' => 1]);
+        $roomC = Room::factory()->create(['sort_order' => 2]);
+        Item::factory()->allocatedTo([
+            ['room_id' => $roomA->id, 'quantity' => 12],
+            ['room_id' => $roomB->id, 'quantity' => 8],
+            ['room_id' => $roomC->id, 'quantity' => 6],
+        ])->create(['unit_price' => 24.90]);
+
+        $this->withoutVite()->actingAs($user)->get('/')
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('dashboard.totals.items_count', 1)
+                ->where('dashboard.totals.total', 647.40)
+                ->where('dashboard.rooms.0.summary.total', 298.80)
+                ->where('dashboard.rooms.1.summary.total', 199.20)
+                ->where('dashboard.rooms.2.summary.total', 149.40),
+            );
+    }
+
+    public function test_rounds_each_allocation_line_before_summing_not_the_total_quantity(): void
+    {
+        $user = $this->adminUser();
+        $roomA = Room::factory()->create();
+        $roomB = Room::factory()->create();
+        Item::factory()->allocatedTo([
+            ['room_id' => $roomA->id, 'quantity' => 0.33],
+            ['room_id' => $roomB->id, 'quantity' => 0.33],
+        ])->create(['unit_price' => 0.99]);
+
+        // round(0.99 × 0.33, 2) = 0.33 per line, twice = 0.66 — not round(0.99 × 0.66, 2) = 0.65.
+        $this->withoutVite()->actingAs($user)->get('/')
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('dashboard.totals.total', 0.66));
+    }
+
+    public function test_person_summary_counts_multi_room_item_once(): void
+    {
+        $user = $this->adminUser();
+        $roomA = Room::factory()->create();
+        $roomB = Room::factory()->create();
+        Item::factory()->allocatedTo([
+            ['room_id' => $roomA->id, 'quantity' => 2],
+            ['room_id' => $roomB->id, 'quantity' => 3],
+        ])->create(['unit_price' => 10, 'assigned_user_id' => $user->id]);
+
+        $this->withoutVite()->actingAs($user)->get('/')
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('dashboard.people.0.summary.items_count', 1)
+                ->where('dashboard.people.0.summary.total', 50),
+            );
+    }
+
+    public function test_unpriced_multi_room_item_is_counted_once(): void
+    {
+        $user = $this->adminUser();
+        $roomA = Room::factory()->create();
+        $roomB = Room::factory()->create();
+        Item::factory()->allocatedTo([
+            ['room_id' => $roomA->id, 'quantity' => 2],
+            ['room_id' => $roomB->id, 'quantity' => 3],
+        ])->create(['unit_price' => null]);
+
+        $this->withoutVite()->actingAs($user)->get('/')
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('dashboard.totals.items_count', 1)
+                ->where('dashboard.totals.unpriced_count', 1)
+                ->where('dashboard.totals.total', 0),
+            );
+    }
 }

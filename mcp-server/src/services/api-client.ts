@@ -2,7 +2,7 @@ import { DEFAULT_API_URL, REQUEST_TIMEOUT_MS } from "../constants.js";
 import type { AuthToken } from "../types.js";
 
 type QueryValue = string | number | undefined | null;
-type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
+type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 interface RequestOptions {
     query?: Record<string, QueryValue>;
@@ -83,6 +83,20 @@ export class NewHomeApiClient {
 
     async put<T>(path: string, body: unknown): Promise<T> {
         return this.request<T>("PUT", path, { body });
+    }
+
+    async patch<T>(path: string, body: unknown): Promise<T> {
+        return this.request<T>("PATCH", path, { body });
+    }
+
+    /** DELETE returning 204 No Content (an empty body parses to null). */
+    async delete(path: string): Promise<void> {
+        await this.request<null>("DELETE", path, {});
+    }
+
+    /** DELETE that returns a JSON body (e.g. 200 ItemDetailData). */
+    async deleteWithBody<T>(path: string): Promise<T> {
+        return this.request<T>("DELETE", path, {});
     }
 
     private async request<T>(method: HttpMethod, path: string, options: RequestOptions): Promise<T> {

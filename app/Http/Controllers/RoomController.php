@@ -63,12 +63,12 @@ final class RoomController extends Controller
     #[Authorize('view', 'room')]
     public function show(Room $room): Response
     {
-        $items = $room->items()->getQuery();
+        $items = Item::query()->inRoomFilter($room->id);
 
         return Inertia::render('Rooms/Show', [
-            'room' => RoomListItemData::fromModel($room, $this->spendingService->summaryFor($items)),
+            'room' => RoomListItemData::fromModel($room, $this->spendingService->summaryForRoom($room->id)),
             'items' => (clone $items)
-                ->with(['room', 'assignedUser', 'media', 'selectedVariant:id,name'])
+                ->with(['allocations.room:id,name,sort_order', 'assignedUser', 'media', 'selectedVariant:id,name'])
                 ->withCount('variants')
                 ->shoppingOrder()
                 ->get()

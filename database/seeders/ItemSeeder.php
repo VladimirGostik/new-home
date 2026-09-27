@@ -41,15 +41,34 @@ final class ItemSeeder extends Seeder
         ];
 
         foreach ($items as [$name, $room, $price, $quantity, $assigned, $status, $priority]) {
-            Item::create([
+            $roomId = $room !== null ? $rooms->get($room) : null;
+
+            $item = Item::create([
                 'name' => $name,
-                'room_id' => $room !== null ? $rooms->get($room) : null,
+                'room_id' => $roomId,
                 'unit_price' => $price,
                 'quantity' => $quantity,
                 'assigned_user_id' => $assigned ? $owner : null,
                 'status' => $status,
                 'priority' => $priority,
             ]);
+
+            $item->allocations()->create(['room_id' => $roomId, 'quantity' => $quantity]);
         }
+
+        $kupelna = $rooms->get('Kúpeľňa');
+
+        $dlazba = Item::create([
+            'name' => 'Dlažba',
+            'room_id' => null,
+            'unit_price' => 24.90,
+            'quantity' => 14.5,
+            'assigned_user_id' => null,
+            'status' => ItemStatus::Planned,
+            'priority' => ItemPriority::Medium,
+        ]);
+
+        $dlazba->allocations()->create(['room_id' => $kupelna, 'quantity' => 12.5]);
+        $dlazba->allocations()->create(['room_id' => null, 'quantity' => 2]);
     }
 }

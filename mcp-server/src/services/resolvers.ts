@@ -1,5 +1,5 @@
 import { WHOLE_HOUSE_FILTER, WHOLE_HOUSE_LABEL } from "../constants.js";
-import type { Item, Paginated, Room } from "../types.js";
+import type { Item, ItemDetail, ItemVariant, Paginated, Room } from "../types.js";
 import { ApiError, type NewHomeApiClient } from "./api-client.js";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -28,13 +28,13 @@ export async function listRooms(client: NewHomeApiClient): Promise<Room[]> {
 }
 
 /** Resolve a room given by uuid, name (case/diacritics-insensitive, partial allowed if unique) or "house". */
-export async function resolveRoom(client: NewHomeApiClient, input: string): Promise<RoomRef> {
+export async function resolveRoom(client: NewHomeApiClient, input: string, knownRooms?: Room[]): Promise<RoomRef> {
     const needle = normalize(input);
     if (WHOLE_HOUSE_ALIASES.has(needle)) {
         return { kind: "house" };
     }
 
-    const rooms = await listRooms(client);
+    const rooms = knownRooms ?? (await listRooms(client));
     const available = () => [...rooms.map((r) => `"${r.name}"`), `"${WHOLE_HOUSE_FILTER}" (${WHOLE_HOUSE_LABEL})`].join(", ");
 
     if (isUuid(input)) {
@@ -132,4 +132,63 @@ export async function searchItemsLocally(
         from: data.length > 0 ? start + 1 : null,
         to: data.length > 0 ? start + data.length : null,
     };
+}
+
+/** API allocation input row: room_id null = Celý dom. */
+export interface AllocationInput {
+    room_id: string | null;
+    quantity: number;
+}
+
+/** Resolve [{room, quantity}] (names/ids/"house") into API allocation rows; rejects the same room twice. */
+export async function resolveAllocations(
+    client: NewHomeApiClient,
+    rows: ReadonlyArray<{ room: string; quantity: number }>,
+): Promise<AllocationInput[]> {
+    const needsRooms = rows.some((row) => !WHOLE_HOUSE_ALIASES.has(normalize(row.room)));
+    const rooms = needsRooms ? await listRooms(client) : [];
+    const seen = new Map<string, string>();
+    const result: AllocationInput[] = [];
+    for (const row of rows) {
+        const ref = await resolveRoom(client, row.room, rooms);
+        const key = ref.kind === "house" ? WHOLE_HOUSE_FILTER : ref.room.id;
+        const label = ref.kind === "house" ? WHOLE_HOUSE_LABEL : ref.room.name;
+        if (seen.has(key)) {
+            throw new ApiError(
+                `Room "${label}" is listed more than once ("${seen.get(key)}" and "${row.room}"). Merge them into one row with the summed quantity.`,
+            );
+        }
+        seen.set(key, row.room);
+        result.push({ room_id: ref.kind === "house" ? null : ref.room.id, quantity: row.quantity });
+    }
+    return result;
+}
+
+/** Find a variant of an item by UUID or name (case/diacritics-insensitive, unique partial match ok). */
+export function resolveVariant(detail: ItemDetail, input: string): ItemVariant {
+    const trimmed = input.trim();
+    const list = () => detail.variants.map((v) => `- ${v.name} — id ${v.id}`).join("\n") || "(item has no variants)";
+
+    if (isUuid(trimmed)) {
+        const byId = detail.variants.find((v) => v.id.toLowerCase() === trimmed.toLowerCase());
+        if (byId) return byId;
+        throw new ApiError(`Item "${detail.item.name}" has no variant with id ${trimmed}. Its variants:\n${list()}`);
+    }
+
+    const needle = normalize(trimmed);
+    const exact = detail.variants.filter((v) => normalize(v.name) === needle);
+    const partial = detail.variants.filter((v) => normalize(v.name).includes(needle));
+    const pick = exact.length === 1 ? exact[0] : partial.length === 1 ? partial[0] : undefined;
+    if (pick) return pick;
+    throw new ApiError(
+        partial.length > 1
+            ? `Variant "${trimmed}" is ambiguous for item "${detail.item.name}". Pass the variant id:\n${list()}`
+            : `Item "${detail.item.name}" has no variant matching "${trimmed}". Its variants:\n${list()}`,
+    );
+}
+
+/** Load item detail by UUID or name. */
+export async function loadItemDetail(client: NewHomeApiClient, input: string): Promise<ItemDetail> {
+    const id = await resolveItemId(client, input);
+    return client.get<ItemDetail>(`/items/${encodeURIComponent(id)}`);
 }

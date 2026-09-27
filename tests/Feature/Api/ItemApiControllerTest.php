@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Api;
 
 use App\Models\Item;
+use App\Models\ItemAllocation;
 use App\Models\ItemVariant;
 use App\Models\ItemVariantVote;
 use App\Models\Room;
@@ -68,6 +69,29 @@ final class ItemApiControllerTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('total', 1);
+    }
+
+    public function test_index_exposes_multi_room_item_with_joined_room_names_and_summed_quantity(): void
+    {
+        $user = $this->userWithPermission('view items');
+        $roomA = Room::factory()->create(['name' => 'Kúpeľňa', 'sort_order' => 0]);
+        $roomB = Room::factory()->create(['name' => 'Kuchyňa', 'sort_order' => 1]);
+        Item::factory()->allocatedTo([
+            ['room_id' => $roomA->id, 'quantity' => 12.5],
+            ['room_id' => $roomB->id, 'quantity' => 8],
+        ])->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/items');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.room_id', null);
+        $response->assertJsonPath('data.0.room_name', 'Kúpeľňa, Kuchyňa');
+        $response->assertJsonPath('data.0.quantity', 20.5);
+        $response->assertJsonCount(2, 'data.0.allocations');
+
+        $this->getJson("/api/items?filter[room]={$roomA->id}")->assertOk();
+        $this->getJson("/api/items?filter[room]={$roomB->id}")->assertOk();
     }
 
     public function test_index_requires_authentication(): void
@@ -180,6 +204,96 @@ final class ItemApiControllerTest extends TestCase
         $this->assertDatabaseHas('items', ['name' => 'Milk']);
     }
 
+    public function test_store_with_legacy_room_and_quantity_creates_one_allocation(): void
+    {
+        $user = $this->userWithPermission('create items');
+        $room = Room::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/items', ['name' => 'Milk', 'room_id' => $room->id, 'quantity' => 3]);
+
+        $response->assertCreated();
+        $item = Item::query()->where('name', 'Milk')->firstOrFail();
+        $this->assertSame(1, $item->allocations()->count());
+        $response->assertJsonPath('room_id', $room->id);
+        $response->assertJsonPath('room_name', $room->name);
+        $response->assertJsonPath('quantity', 3);
+    }
+
+    public function test_store_without_room_creates_whole_house_allocation(): void
+    {
+        $user = $this->userWithPermission('create items');
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/items', ['name' => 'Milk']);
+
+        $response->assertCreated();
+        $item = Item::query()->where('name', 'Milk')->firstOrFail();
+        $this->assertSame(1, $item->allocations()->count());
+        $this->assertDatabaseHas('item_allocations', ['item_id' => $item->id, 'room_id' => null]);
+    }
+
+    public function test_store_with_decimal_legacy_quantity_is_accepted(): void
+    {
+        $user = $this->userWithPermission('create items');
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/items', ['name' => 'Paint', 'quantity' => 2.5]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('quantity', 2.5);
+    }
+
+    public function test_store_with_allocations_array_creates_item(): void
+    {
+        $user = $this->userWithPermission('create items');
+        $room = Room::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/items', [
+            'name' => 'Dlažba',
+            'allocations' => [
+                ['room_id' => $room->id, 'quantity' => 12.5],
+                ['room_id' => null, 'quantity' => 2],
+            ],
+        ]);
+
+        $response->assertCreated();
+        $item = Item::query()->where('name', 'Dlažba')->firstOrFail();
+        $this->assertSame(2, $item->allocations()->count());
+    }
+
+    public function test_store_with_allocation_missing_quantity_returns_422(): void
+    {
+        $user = $this->userWithPermission('create items');
+        $room = Room::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/items', [
+            'name' => 'Dlažba',
+            'allocations' => [['room_id' => $room->id]],
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['allocations.0.quantity']);
+    }
+
+    public function test_store_with_both_allocations_and_legacy_room_id_returns_422(): void
+    {
+        $user = $this->userWithPermission('create items');
+        $room = Room::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/items', [
+            'name' => 'Dlažba',
+            'room_id' => $room->id,
+            'allocations' => [['room_id' => $room->id, 'quantity' => 1]],
+        ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['allocations']);
+    }
+
     public function test_store_with_missing_name_returns_422(): void
     {
         $user = $this->userWithPermission('create items');
@@ -223,6 +337,224 @@ final class ItemApiControllerTest extends TestCase
         $response = $this->postJson('/api/items', ['name' => 'Milk']);
 
         $response->assertForbidden();
+    }
+
+    // ── update (patch) ────────────────────────────────────────────────────────
+
+    public function test_update_changes_only_the_sent_field(): void
+    {
+        $user = $this->userWithPermission('edit items');
+        $item = Item::factory()->create(['name' => 'Old name', 'note' => 'Keep me', 'unit_price' => 5]);
+        Sanctum::actingAs($user);
+
+        $response = $this->patchJson("/api/items/{$item->id}", ['name' => 'New name']);
+
+        $response->assertOk();
+        $response->assertJsonPath('name', 'New name');
+        $fresh = $this->refreshed($item);
+        $this->assertSame('Keep me', $fresh->note);
+        $this->assertSame('5.00', $fresh->unit_price);
+        $this->assertSame(1, $fresh->allocations()->count());
+    }
+
+    public function test_update_via_put_unassigns_with_explicit_null(): void
+    {
+        $user = $this->userWithPermission('edit items');
+        $assignee = User::factory()->create();
+        $item = Item::factory()->create(['assigned_user_id' => $assignee->id]);
+        Sanctum::actingAs($user);
+
+        $response = $this->putJson("/api/items/{$item->id}", ['assigned_user_id' => null]);
+
+        $response->assertOk();
+        $this->assertNull($this->refreshed($item)->assigned_user_id);
+    }
+
+    public function test_update_with_empty_body_returns_422(): void
+    {
+        $user = $this->userWithPermission('edit items');
+        $item = Item::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->patchJson("/api/items/{$item->id}", []);
+
+        $response->assertUnprocessable();
+    }
+
+    public function test_update_with_invalid_status_returns_422(): void
+    {
+        $user = $this->userWithPermission('edit items');
+        $item = Item::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->patchJson("/api/items/{$item->id}", ['status' => 'not-a-status']);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['status']);
+    }
+
+    public function test_update_unit_price_while_variant_selected_returns_422(): void
+    {
+        $user = $this->userWithPermission('edit items');
+        $item = Item::factory()->create();
+        $variant = ItemVariant::factory()->create(['item_id' => $item->id, 'unit_price' => 10]);
+        $item->update(['selected_variant_id' => $variant->id]);
+        Sanctum::actingAs($user);
+
+        $response = $this->patchJson("/api/items/{$item->id}", ['unit_price' => 999]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['unit_price']);
+    }
+
+    public function test_update_is_forbidden_without_permission(): void
+    {
+        $item = Item::factory()->create();
+        Sanctum::actingAs(User::factory()->create());
+
+        $response = $this->patchJson("/api/items/{$item->id}", ['name' => 'X']);
+
+        $response->assertForbidden();
+    }
+
+    public function test_update_returns_404_for_unknown_item(): void
+    {
+        $user = $this->userWithPermission('edit items');
+        Sanctum::actingAs($user);
+
+        $response = $this->patchJson('/api/items/00000000-0000-0000-0000-000000000000', ['name' => 'X']);
+
+        $response->assertNotFound();
+    }
+
+    // ── allocations ───────────────────────────────────────────────────────────
+
+    public function test_update_allocations_replaces_rooms_and_quantities(): void
+    {
+        $user = $this->userWithPermission('edit items');
+        $roomA = Room::factory()->create();
+        $roomB = Room::factory()->create();
+        $item = Item::factory()->create();
+        Sanctum::actingAs($user);
+
+        $payload = ['allocations' => [
+            ['room_id' => $roomA->id, 'quantity' => 12.5],
+            ['room_id' => $roomB->id, 'quantity' => 8],
+        ]];
+
+        $response = $this->putJson("/api/items/{$item->id}/allocations", $payload);
+        $response->assertOk();
+        $this->assertSame(2, $item->allocations()->count());
+
+        // Repeating the same payload is idempotent — same two rows, same totals.
+        $response = $this->putJson("/api/items/{$item->id}/allocations", $payload);
+        $response->assertOk();
+        $this->assertSame(2, $this->refreshed($item)->allocations()->count());
+        $response->assertJsonPath('quantity', 20.5);
+    }
+
+    public function test_update_allocations_with_missing_quantity_returns_422(): void
+    {
+        $user = $this->userWithPermission('edit items');
+        $room = Room::factory()->create();
+        $item = Item::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->putJson("/api/items/{$item->id}/allocations", ['allocations' => [
+            ['room_id' => $room->id],
+        ]]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['allocations.0.quantity']);
+    }
+
+    public function test_update_allocations_with_duplicate_room_returns_422(): void
+    {
+        $user = $this->userWithPermission('edit items');
+        $room = Room::factory()->create();
+        $item = Item::factory()->create();
+        Sanctum::actingAs($user);
+
+        $response = $this->putJson("/api/items/{$item->id}/allocations", ['allocations' => [
+            ['room_id' => $room->id, 'quantity' => 1],
+            ['room_id' => $room->id, 'quantity' => 2],
+        ]]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['allocations']);
+    }
+
+    public function test_update_allocations_requires_authentication(): void
+    {
+        $item = Item::factory()->create();
+
+        $response = $this->putJson("/api/items/{$item->id}/allocations", ['allocations' => [['room_id' => null, 'quantity' => 1]]]);
+
+        $response->assertUnauthorized();
+    }
+
+    public function test_update_allocations_is_forbidden_without_permission(): void
+    {
+        $item = Item::factory()->create();
+        Sanctum::actingAs(User::factory()->create());
+
+        $response = $this->putJson("/api/items/{$item->id}/allocations", ['allocations' => [['room_id' => null, 'quantity' => 1]]]);
+
+        $response->assertForbidden();
+    }
+
+    public function test_update_allocations_returns_404_for_unknown_item(): void
+    {
+        $user = $this->userWithPermission('edit items');
+        Sanctum::actingAs($user);
+
+        $response = $this->putJson('/api/items/00000000-0000-0000-0000-000000000000/allocations', ['allocations' => [['room_id' => null, 'quantity' => 1]]]);
+
+        $response->assertNotFound();
+    }
+
+    // ── destroy ───────────────────────────────────────────────────────────────
+
+    public function test_destroy_deletes_item_variants_and_allocations(): void
+    {
+        $user = $this->userWithPermission('delete items');
+        $item = Item::factory()->create();
+        $variant = ItemVariant::factory()->create(['item_id' => $item->id]);
+        $allocationId = $item->allocations()->firstOrFail()->id;
+        Sanctum::actingAs($user);
+
+        $response = $this->deleteJson("/api/items/{$item->id}");
+
+        $response->assertNoContent();
+        $this->assertDatabaseMissing('items', ['id' => $item->id]);
+        $this->assertDatabaseMissing('item_variants', ['id' => $variant->id]);
+        $this->assertDatabaseMissing('item_allocations', ['item_id' => $item->id]);
+        $this->assertDatabaseHas('activity_log', [
+            'subject_type' => (new ItemAllocation)->getMorphClass(),
+            'subject_id' => $allocationId,
+            'event' => 'deleted',
+        ]);
+    }
+
+    public function test_destroy_is_forbidden_without_delete_items_permission(): void
+    {
+        // Same web rule: edit items is not enough — destroy requires delete items.
+        $item = Item::factory()->create();
+        Sanctum::actingAs($this->userWithPermission('edit items'));
+
+        $response = $this->deleteJson("/api/items/{$item->id}");
+
+        $response->assertForbidden();
+    }
+
+    public function test_destroy_returns_404_for_unknown_item(): void
+    {
+        $user = $this->userWithPermission('delete items');
+        Sanctum::actingAs($user);
+
+        $response = $this->deleteJson('/api/items/00000000-0000-0000-0000-000000000000');
+
+        $response->assertNotFound();
     }
 
     // ── updateVariantComparison ──────────────────────────────────────────────

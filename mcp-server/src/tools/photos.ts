@@ -2,31 +2,9 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ApiError, type NewHomeApiClient } from "../services/api-client.js";
 import { toolError, toolResult } from "../services/format.js";
-import { isUuid, normalize, resolveItemId } from "../services/resolvers.js";
+import { resolveItemId, resolveVariant } from "../services/resolvers.js";
 import type { Item, ItemDetail, ItemVariant } from "../types.js";
 import { itemRefSchema, photoUrlSchema, responseFormatSchema } from "./schemas.js";
-
-function resolveVariant(detail: ItemDetail, input: string): ItemVariant {
-    const trimmed = input.trim();
-    const list = () => detail.variants.map((v) => `- ${v.name} — id ${v.id}`).join("\n") || "(item has no variants)";
-
-    if (isUuid(trimmed)) {
-        const byId = detail.variants.find((v) => v.id.toLowerCase() === trimmed.toLowerCase());
-        if (byId) return byId;
-        throw new ApiError(`Item "${detail.item.name}" has no variant with id ${trimmed}. Its variants:\n${list()}`);
-    }
-
-    const needle = normalize(trimmed);
-    const exact = detail.variants.filter((v) => normalize(v.name) === needle);
-    const partial = detail.variants.filter((v) => normalize(v.name).includes(needle));
-    const pick = exact.length === 1 ? exact[0] : partial.length === 1 ? partial[0] : undefined;
-    if (pick) return pick;
-    throw new ApiError(
-        partial.length > 1
-            ? `Variant "${trimmed}" is ambiguous for item "${detail.item.name}". Pass the variant id:\n${list()}`
-            : `Item "${detail.item.name}" has no variant matching "${trimmed}". Its variants:\n${list()}`,
-    );
-}
 
 export function registerPhotoTools(server: McpServer, client: NewHomeApiClient): void {
     server.registerTool(

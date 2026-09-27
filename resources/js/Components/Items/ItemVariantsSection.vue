@@ -9,7 +9,7 @@ import { useVariantSelection } from '@/Composables/useVariantSelection';
 
 const props = defineProps<{
     itemId: string;
-    quantity: number;
+    allocations: App.Data.ItemAllocationData[];
     variants: App.Data.ItemVariantListItemData[];
 }>();
 
@@ -32,15 +32,9 @@ const { busyId, select, unselect } = useVariantSelection(() => props.itemId);
 </script>
 
 <template>
-    <section
-        aria-labelledby="variants-heading"
-        class="flex flex-col gap-3"
-    >
+    <section aria-labelledby="variants-heading" class="flex flex-col gap-3">
         <div class="flex items-center justify-between gap-2">
-            <h2
-                id="variants-heading"
-                class="font-display text-[22px] font-semibold"
-            >
+            <h2 id="variants-heading" class="font-display text-[22px] font-semibold">
                 {{ t('variants') }} <span class="text-muted">({{ variants.length }})</span>
             </h2>
             <button
@@ -54,10 +48,7 @@ const { busyId, select, unselect } = useVariantSelection(() => props.itemId);
             </button>
         </div>
 
-        <p
-            v-if="variants.length >= 2"
-            class="-mt-2 text-sm text-muted"
-        >{{ t('variants_vote_hint') }}</p>
+        <p v-if="variants.length >= 2" class="-mt-2 text-sm text-muted">{{ t('variants_vote_hint') }}</p>
 
         <div
             v-if="variants.length === 0"
@@ -74,15 +65,12 @@ const { busyId, select, unselect } = useVariantSelection(() => props.itemId);
             </button>
         </div>
 
-        <div
-            v-else
-            class="grid gap-2.5 md:grid-cols-2"
-        >
+        <div v-else class="grid gap-2.5 md:grid-cols-2">
             <ItemVariantCard
                 v-for="v in displayVariants"
                 :key="v.id"
                 :variant="v"
-                :quantity="quantity"
+                :allocations="allocations"
                 :is-leader="leaderIds.has(v.id)"
                 :is-tie="isTie"
                 :vote-pending="pending"

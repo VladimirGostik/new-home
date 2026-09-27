@@ -77,7 +77,7 @@ const deleteConfirm = useDeleteConfirm<App.Data.ItemVariantListItemData>({
             <div class="flex min-w-0 flex-col gap-5">
                 <ItemVariantsSection
                     :item-id="item.id"
-                    :quantity="item.quantity"
+                    :allocations="item.allocations"
                     :variants="variants"
                     @add="openCreate"
                     @edit="openEdit"

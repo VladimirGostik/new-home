@@ -5,13 +5,18 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Data\CreateItemData;
+use App\Data\ItemAllocationInputData;
+use App\Data\PatchItemData;
 use App\Data\SaveItemVariantComparisonData;
 use App\Data\UpdateItemData;
 use App\Enums\ItemStatus;
 use App\Models\Item;
+use App\Models\ItemAllocation;
 use App\Models\ItemVariant;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Spatie\LaravelData\Optional;
 
 final readonly class ItemService
 {
@@ -30,14 +35,14 @@ final readonly class ItemService
                 $item = Item::create([
                     'name' => $data->name,
                     'note' => $data->note,
-                    'room_id' => $data->room_id,
                     'unit_price' => $data->unit_price,
-                    'quantity' => $data->quantity,
                     'url' => $data->url,
                     'assigned_user_id' => $data->assigned_user_id,
                     'status' => $data->status,
                     'priority' => $data->priority,
                 ]);
+
+                $item = $this->syncAllocations($item, $data->resolvedAllocations());
 
                 if ($data->photo_uuid !== null) {
                     $this->uploads->moveToModel($item, 'photo', $data->photo_uuid);
@@ -45,7 +50,10 @@ final readonly class ItemService
 
                 $image?->attachTo($item, 'photo');
 
-                return $item->fresh(['media']);
+                /** @var Item $item */
+                $item = $item->fresh(['media', 'allocations.room']);
+
+                return $item;
             });
         } finally {
             $image?->discard();
@@ -60,8 +68,6 @@ final readonly class ItemService
             $attributes = [
                 'name' => $data->name,
                 'note' => $data->note,
-                'room_id' => $data->room_id,
-                'quantity' => $data->quantity,
                 'assigned_user_id' => $data->assigned_user_id,
                 'status' => $data->status,
                 'priority' => $data->priority,
@@ -74,6 +80,8 @@ final readonly class ItemService
 
             $item->update($attributes);
 
+            $item = $this->syncAllocations($item, $data->allocations);
+
             if (! $hasSelectedVariant) {
                 if ($data->photo_uuid !== null) {
                     $item->clearMediaCollection('photo');
@@ -83,7 +91,94 @@ final readonly class ItemService
                 }
             }
 
-            return $item->fresh(['media']);
+            /** @var Item $item */
+            $item = $item->fresh(['media', 'allocations.room']);
+
+            return $item;
+        });
+    }
+
+    /**
+     * Full replace: rows matching the given room keys are updated in place (keeping
+     * their id / audit trail), the rest are created or deleted. Mirrors the legacy
+     * `room_id` / `quantity` columns onto the item afterwards.
+     *
+     * @param  list<ItemAllocationInputData>  $allocations
+     */
+    public function syncAllocations(Item $item, array $allocations): Item
+    {
+        return DB::transaction(function () use ($item, $allocations): Item {
+            /** @var Item $item */
+            $item = Item::query()->whereKey($item->id)->lockForUpdate()->firstOrFail();
+
+            /** @var Collection<string, ItemAllocation> $existing */
+            $existing = $item->allocations()->get()->keyBy(fn (ItemAllocation $allocation): string => $allocation->room_id ?? '');
+
+            $keptKeys = [];
+
+            foreach ($allocations as $allocation) {
+                $key = $allocation->room_id ?? '';
+                $keptKeys[] = $key;
+
+                $row = $existing->get($key);
+
+                if ($row !== null) {
+                    $row->update(['quantity' => $allocation->quantity]);
+
+                    continue;
+                }
+
+                $item->allocations()->create([
+                    'room_id' => $allocation->room_id,
+                    'quantity' => $allocation->quantity,
+                ]);
+            }
+
+            // Eloquent Collection::except() matches primary keys, not these room-keyed
+            // array keys — reject() preserves the keyBy() keys so this actually works.
+            $existing
+                ->reject(fn (ItemAllocation $allocation, string $key): bool => in_array($key, $keptKeys, true))
+                ->each(fn (ItemAllocation $allocation) => $allocation->delete());
+
+            $item->update([
+                'room_id' => count($allocations) === 1 ? $allocations[0]->room_id : null,
+                'quantity' => array_sum(array_map(fn (ItemAllocationInputData $allocation): float => $allocation->quantity, $allocations)),
+            ]);
+
+            /** @var Item $item */
+            $item = $item->fresh(['media', 'allocations.room']);
+
+            return $item;
+        });
+    }
+
+    public function patch(Item $item, PatchItemData $data): Item
+    {
+        if ($item->selected_variant_id !== null) {
+            $errors = [];
+
+            if (! $data->unit_price instanceof Optional) {
+                $errors['unit_price'] = [__('app.item_price_from_selected_variant')];
+            }
+
+            if (! $data->url instanceof Optional) {
+                $errors['url'] = [__('app.item_price_from_selected_variant')];
+            }
+
+            if ($errors !== []) {
+                throw ValidationException::withMessages($errors);
+            }
+        }
+
+        return DB::transaction(function () use ($item, $data): Item {
+            /** @var array<string, mixed> $attributes */
+            $attributes = $data->toArray();
+            $item->update($attributes);
+
+            /** @var Item $item */
+            $item = $item->fresh(['media', 'allocations.room']);
+
+            return $item;
         });
     }
 
@@ -101,7 +196,10 @@ final readonly class ItemService
             return DB::transaction(function () use ($item, $image): Item {
                 $image->attachTo($item, 'photo');
 
-                return $item->fresh(['media']);
+                /** @var Item $item */
+                $item = $item->fresh(['media']);
+
+                return $item;
             });
         } finally {
             $image->discard();
@@ -115,13 +213,18 @@ final readonly class ItemService
                 'status' => $item->status === ItemStatus::Planned ? ItemStatus::Bought : ItemStatus::Planned,
             ]);
 
-            return $item->fresh();
+            /** @var Item $item */
+            $item = $item->fresh();
+
+            return $item;
         });
     }
 
     public function delete(Item $item): void
     {
         DB::transaction(function () use ($item): void {
+            // Deleted explicitly (not left to the FK cascade) so LogsActivity records each removal.
+            $item->allocations()->get()->each(fn (ItemAllocation $allocation) => $allocation->delete());
             $item->variants()->get()->each(fn (ItemVariant $variant) => $variant->delete());
             $item->delete();
         });
