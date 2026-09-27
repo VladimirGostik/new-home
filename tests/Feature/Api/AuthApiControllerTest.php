@@ -6,10 +6,12 @@ namespace Tests\Feature\Api;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\CreatesUsers;
 use Tests\TestCase;
 
 final class AuthApiControllerTest extends TestCase
 {
+    use CreatesUsers;
     use RefreshDatabase;
 
     // ── login ─────────────────────────────────────────────────────────────────
@@ -30,6 +32,24 @@ final class AuthApiControllerTest extends TestCase
         ]);
         $response->assertJsonPath('user.email', 'test@example.com');
         $this->assertDatabaseCount('personal_access_tokens', 1);
+    }
+
+    public function test_login_token_authenticates_subsequent_api_requests(): void
+    {
+        $user = $this->userWithPermission('view rooms');
+
+        $loginResponse = $this->postJson('/api/auth/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $loginResponse->assertOk();
+        $token = $loginResponse->json('token');
+        $this->assertIsString($token);
+
+        $response = $this->withToken($token)->getJson('/api/rooms');
+
+        $response->assertOk();
     }
 
     public function test_login_with_wrong_password_returns_422(): void

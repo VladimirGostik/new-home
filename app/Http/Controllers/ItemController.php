@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Data\CreateItemData;
 use App\Data\ItemListItemData;
+use App\Data\ItemVariantComparisonData;
 use App\Data\ItemVariantListItemData;
 use App\Data\UpdateItemData;
 use App\Enums\ItemPriority;
@@ -48,13 +49,8 @@ final class ItemController extends Controller
             ->allowedFilters(
                 AllowedFilter::search(['name']),
                 AllowedFilter::callbackClean('room', function (Builder $query, mixed $value): void {
-                    if ($value === 'house') {
-                        $query->whereNull('room_id');
-
-                        return;
-                    }
-
-                    $query->where('room_id', $value);
+                    /** @var Builder<Item> $query */
+                    $query->inRoomFilter(is_string($value) ? $value : '');
                 }),
                 AllowedFilter::callbackClean('assignee', function (Builder $query, mixed $value) use ($currentUserId): void {
                     if ($value === 'me') {
@@ -150,6 +146,7 @@ final class ItemController extends Controller
                 ->get()
                 ->map(fn (ItemVariant $variant) => ItemVariantListItemData::fromModel($variant, $item->selected_variant_id, $request->user()?->id))
                 ->all(),
+            'comparison' => ItemVariantComparisonData::fromItem($item),
         ]);
     }
 

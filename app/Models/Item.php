@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 use Spatie\MediaLibrary\HasMedia;
@@ -24,8 +25,10 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 /**
  * @property ItemStatus $status
  * @property ItemPriority $priority
+ * @property Carbon|null $variant_comparison_generated_at
+ * @property bool $variant_comparison_is_stale
  */
-#[Fillable(['name', 'note', 'room_id', 'unit_price', 'quantity', 'url', 'assigned_user_id', 'status', 'priority', 'selected_variant_id'])]
+#[Fillable(['name', 'note', 'room_id', 'unit_price', 'quantity', 'url', 'assigned_user_id', 'status', 'priority', 'selected_variant_id', 'variant_comparison', 'variant_comparison_generated_at', 'variant_comparison_is_stale'])]
 final class Item extends Model implements HasMedia
 {
     /** @use HasFactory<ItemFactory> */
@@ -38,6 +41,8 @@ final class Item extends Model implements HasMedia
             'quantity' => 'integer',
             'status' => ItemStatus::class,
             'priority' => ItemPriority::class,
+            'variant_comparison_generated_at' => 'datetime',
+            'variant_comparison_is_stale' => 'boolean',
         ];
     }
 
@@ -60,7 +65,7 @@ final class Item extends Model implements HasMedia
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'note', 'room_id', 'unit_price', 'quantity', 'url', 'assigned_user_id', 'status', 'priority', 'selected_variant_id'])
+            ->logOnly(['name', 'note', 'room_id', 'unit_price', 'quantity', 'url', 'assigned_user_id', 'status', 'priority', 'selected_variant_id', 'variant_comparison_generated_at', 'variant_comparison_is_stale'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }
@@ -77,6 +82,21 @@ final class Item extends Model implements HasMedia
             ->orderByRaw('CASE WHEN status = ? THEN 0 ELSE 1 END', [ItemStatus::Planned->value])
             ->orderByRaw('CASE priority WHEN ? THEN 0 WHEN ? THEN 1 ELSE 2 END', [ItemPriority::High->value, ItemPriority::Medium->value])
             ->orderBy('name');
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function inRoomFilter(Builder $query, string $value): void
+    {
+        if ($value === 'house') {
+            $query->whereNull('room_id');
+
+            return;
+        }
+
+        $query->where('room_id', $value);
     }
 
     /** @return BelongsTo<Room, $this> */

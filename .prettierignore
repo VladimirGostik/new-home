@@ -8,3 +8,4 @@ resources/js/generated/**
 *.lock
 pnpm-lock.yaml
 composer.lock
+mcp-server

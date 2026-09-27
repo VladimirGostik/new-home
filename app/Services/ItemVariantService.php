@@ -30,6 +30,8 @@ final readonly class ItemVariantService
                 $this->uploads->moveToModel($variant, 'photo', $data->photo_uuid);
             }
 
+            $this->markComparisonStale($item);
+
             /** @var ItemVariant $variant */
             $variant = $variant->fresh(['media']);
 
@@ -63,6 +65,8 @@ final readonly class ItemVariantService
                 $this->mirrorOntoItem($item, $variant);
             }
 
+            $this->markComparisonStale($item);
+
             return $variant;
         });
     }
@@ -70,7 +74,12 @@ final readonly class ItemVariantService
     public function delete(ItemVariant $variant): void
     {
         DB::transaction(function () use ($variant): void {
+            /** @var Item $item */
+            $item = $variant->item;
+
             $variant->delete();
+
+            $this->markComparisonStale($item);
         });
     }
 
@@ -114,6 +123,13 @@ final readonly class ItemVariantService
             $photo->copy($item, 'photo');
         } else {
             $item->clearMediaCollection('photo');
+        }
+    }
+
+    private function markComparisonStale(Item $item): void
+    {
+        if ($item->variant_comparison !== null && ! $item->variant_comparison_is_stale) {
+            $item->update(['variant_comparison_is_stale' => true]);
         }
     }
 }

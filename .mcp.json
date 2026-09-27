@@ -3,6 +3,15 @@
         "laravel-boost": {
             "command": "php",
             "args": ["artisan", "boost:mcp"]
+        },
+        "new-home": {
+            "command": "node",
+            "args": ["mcp-server/dist/index.js"],
+            "env": {
+                "NEW_HOME_API_URL": "${NEW_HOME_API_URL:-http://localhost:8003}",
+                "NEW_HOME_EMAIL": "${NEW_HOME_EMAIL}",
+                "NEW_HOME_PASSWORD": "${NEW_HOME_PASSWORD}"
+            }
         }
     }
 }

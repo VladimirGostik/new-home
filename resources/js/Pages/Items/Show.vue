@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { ChevronLeftIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
 import ItemSummaryCard from '@/Components/Items/ItemSummaryCard.vue';
 import ItemVariantsSection from '@/Components/Items/ItemVariantsSection.vue';
+import ItemVariantComparison from '@/Components/Items/ItemVariantComparison.vue';
 import ItemVariantFormModal from '@/Components/Items/ItemVariantFormModal.vue';
 import ConfirmDeleteModal from '@/Components/ConfirmDeleteModal.vue';
 import { useDeleteConfirm } from '@/Composables/useDeleteConfirm';
@@ -13,6 +14,7 @@ import { useReturnTo } from '@/Composables/useReturnTo';
 const props = defineProps<{
     item: App.Data.ItemListItemData;
     variants: App.Data.ItemVariantListItemData[];
+    comparison: App.Data.ItemVariantComparisonData | null;
 }>();
 
 const { t } = useI18n();
@@ -72,14 +74,18 @@ const deleteConfirm = useDeleteConfirm<App.Data.ItemVariantListItemData>({
                 <ItemSummaryCard :item="item" />
             </div>
 
-            <ItemVariantsSection
-                :item-id="item.id"
-                :quantity="item.quantity"
-                :variants="variants"
-                @add="openCreate"
-                @edit="openEdit"
-                @delete="deleteConfirm.openModal"
-            />
+            <div class="flex min-w-0 flex-col gap-5">
+                <ItemVariantsSection
+                    :item-id="item.id"
+                    :quantity="item.quantity"
+                    :variants="variants"
+                    @add="openCreate"
+                    @edit="openEdit"
+                    @delete="deleteConfirm.openModal"
+                />
+
+                <ItemVariantComparison v-if="comparison" :comparison="comparison" />
+            </div>
         </div>
     </div>
 

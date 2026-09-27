@@ -9,10 +9,13 @@ use App\Support\PrecognitiveDataValidatorResolver;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Validator;
 use ReflectionClass;
 use Spatie\LaravelData\Contracts\BaseData;
@@ -52,6 +55,13 @@ final class AppServiceProvider extends ServiceProvider
         Event::listen(Login::class, [LogAuthenticationActivity::class, 'handleLogin']);
         Event::listen(Logout::class, [LogAuthenticationActivity::class, 'handleLogout']);
         Event::listen(Failed::class, [LogAuthenticationActivity::class, 'handleFailed']);
+
+        RateLimiter::for('login', function (Request $request): Limit {
+            $email = $request->input('email');
+            $key = Str::lower(is_string($email) ? $email : '').'|'.get_client_ip();
+
+            return Limit::perMinute(5)->by($key);
+        });
     }
 
     private function loadJsonTranslations(): void

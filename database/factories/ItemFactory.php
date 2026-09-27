@@ -36,4 +36,13 @@ final class ItemFactory extends Factory
             'priority' => ItemPriority::Medium,
         ];
     }
+
+    public function withVariantComparison(bool $stale = false): self
+    {
+        return $this->state(fn (): array => [
+            'variant_comparison' => fake()->paragraph(),
+            'variant_comparison_generated_at' => now(),
+            'variant_comparison_is_stale' => $stale,
+        ]);
+    }
 }

@@ -368,4 +368,42 @@ final class ItemVariantControllerTest extends TestCase
 
         $response->assertForbidden();
     }
+
+    public function test_update_marks_existing_comparison_as_stale(): void
+    {
+        $user = $this->userWithPermission('edit items');
+        $item = Item::factory()->withVariantComparison()->create();
+        $variant = ItemVariant::factory()->create(['item_id' => $item->id]);
+
+        $response = $this->actingAs($user)->put("/items/{$item->id}/variants/{$variant->id}", ['name' => 'New name']);
+
+        $response->assertRedirect();
+        $this->assertTrue($this->refreshed($item)->variant_comparison_is_stale);
+    }
+
+    public function test_destroy_marks_existing_comparison_as_stale(): void
+    {
+        $user = $this->userWithPermission('delete items');
+        $item = Item::factory()->withVariantComparison()->create();
+        $variant = ItemVariant::factory()->create(['item_id' => $item->id]);
+
+        $response = $this->actingAs($user)->delete("/items/{$item->id}/variants/{$variant->id}");
+
+        $response->assertRedirect();
+        $this->assertTrue($this->refreshed($item)->variant_comparison_is_stale);
+    }
+
+    public function test_update_without_existing_comparison_leaves_it_null(): void
+    {
+        $user = $this->userWithPermission('edit items');
+        $item = Item::factory()->create();
+        $variant = ItemVariant::factory()->create(['item_id' => $item->id]);
+
+        $response = $this->actingAs($user)->put("/items/{$item->id}/variants/{$variant->id}", ['name' => 'New name']);
+
+        $response->assertRedirect();
+        $fresh = $this->refreshed($item);
+        $this->assertNull($fresh->variant_comparison);
+        $this->assertFalse($fresh->variant_comparison_is_stale);
+    }
 }

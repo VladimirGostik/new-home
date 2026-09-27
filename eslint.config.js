@@ -32,6 +32,7 @@ export default [
             'bootstrap/cache/**',
             'resources/js/types/generated.d.ts',
             'resources/js/generated/**',
+            'mcp-server/**',
         ],
     },
     js.configs.recommended,

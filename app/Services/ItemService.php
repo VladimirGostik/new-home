@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Data\CreateItemData;
+use App\Data\SaveItemVariantComparisonData;
 use App\Data\UpdateItemData;
 use App\Enums\ItemStatus;
 use App\Models\Item;
 use App\Models\ItemVariant;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 final readonly class ItemService
 {
@@ -93,5 +95,24 @@ final readonly class ItemService
             $item->variants()->get()->each(fn (ItemVariant $variant) => $variant->delete());
             $item->delete();
         });
+    }
+
+    public function saveVariantComparison(Item $item, SaveItemVariantComparisonData $data): Item
+    {
+        if ($item->variants()->count() < 2) {
+            throw ValidationException::withMessages([
+                'text' => [__('app.variant_comparison_requires_variants')],
+            ]);
+        }
+
+        $item->update([
+            'variant_comparison' => $data->text,
+            'variant_comparison_generated_at' => now(),
+            'variant_comparison_is_stale' => false,
+        ]);
+
+        $item->refresh();
+
+        return $item;
     }
 }

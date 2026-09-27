@@ -6,6 +6,15 @@ Project bootstrapped from `vue-skeleton` via `/build-laravel-app`.
 
 Laravel 13
 
+## Modules
+
+- **items** — Item model + service; shopping-list items with optional variants, voting, AI comparison
+- **item-variants** — ItemVariant model + service; variant proposals with voting
+- **rooms** — Room model; household sections (kitchen, bedroom, etc.) and "whole house" (null)
+- **auth** — Web login (session), API login (Sanctum token) with email+IP rate limit
+- **api** — JSON API routes via Sanctum authentication + precognition
+- **mcp-server** — Standalone Node.js/TypeScript MCP server (stdio transport); tools for rooms/items/variants/comparison
+
 ## Auth profile
 
 profile: role-only

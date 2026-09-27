@@ -83,6 +83,11 @@ readonly unassigned_count: number,
 readonly rooms: App.Data.SpendGroupData[],
 readonly people: App.Data.SpendGroupData[],
 };
+export type ItemDetailData = {
+readonly item: App.Data.ItemListItemData,
+readonly variants: App.Data.ItemVariantListItemData[],
+readonly comparison: App.Data.ItemVariantComparisonData | null,
+};
 export type ItemIndexFilterData = {
 readonly search: string | null,
 readonly room: string | null,
@@ -112,6 +117,11 @@ readonly created_at: string,
 readonly selected_variant_id: string | null,
 readonly selected_variant_name: string | null,
 readonly variants_count: number,
+};
+export type ItemVariantComparisonData = {
+readonly text: string,
+readonly generated_at: string,
+readonly is_stale: boolean,
 };
 export type ItemVariantListItemData = {
 readonly id: string,
@@ -223,6 +233,13 @@ readonly description: string | null,
 readonly sort_order: number,
 readonly created_at: string,
 readonly summary: App.Data.SpendSummaryData,
+};
+export type RoomOptionData = {
+readonly id: string,
+readonly name: string,
+};
+export type SaveItemVariantComparisonData = {
+readonly text: string,
 };
 export type SpendGroupData = {
 readonly id: string | null,

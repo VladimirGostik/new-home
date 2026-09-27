@@ -462,4 +462,27 @@ final class ItemControllerTest extends TestCase
 
         $this->assertNull($item->fresh()->assigned_user_id);
     }
+
+    public function test_show_exposes_null_comparison_when_none_saved(): void
+    {
+        $user = $this->userWithPermission('view items');
+        $item = Item::factory()->create();
+
+        $response = $this->withoutVite()->actingAs($user)->get("/items/{$item->id}");
+
+        $response->assertInertia(fn (AssertableInertia $page) => $page->where('comparison', null));
+    }
+
+    public function test_show_exposes_populated_comparison(): void
+    {
+        $user = $this->userWithPermission('view items');
+        $item = Item::factory()->withVariantComparison()->create();
+
+        $response = $this->withoutVite()->actingAs($user)->get("/items/{$item->id}");
+
+        $response->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('comparison.text', $item->variant_comparison)
+            ->where('comparison.is_stale', false),
+        );
+    }
 }
