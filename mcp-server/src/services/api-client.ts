@@ -188,8 +188,11 @@ export class NewHomeApiClient {
         const cause = error instanceof Error ? (error.cause as { code?: string } | undefined) : undefined;
         const code = cause?.code ?? "";
         if (["ECONNREFUSED", "ECONNRESET", "ENOTFOUND", "EAI_AGAIN", "EHOSTUNREACH"].includes(code)) {
+            const isLocal = /\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(this.config.baseUrl);
             return new ApiError(
-                `Cannot connect to the app at ${this.config.baseUrl} (${code}). Is the app running (docker on :8003 by default)? Start it with \`docker compose up -d\` in the new-home repo, or set NEW_HOME_API_URL.`,
+                isLocal
+                    ? `Cannot connect to the app at ${this.config.baseUrl} (${code}). Is docker running on :8003? Start it with \`docker compose up -d\` in the new-home repo, or set NEW_HOME_API_URL.`
+                    : `Cannot connect to the app at ${this.config.baseUrl} (${code}). Check the internet connection and the app URL (NEW_HOME_API_URL / "Adresa aplikácie" in the extension settings), then try again.`,
             );
         }
         const detail = error instanceof Error ? error.message : String(error);

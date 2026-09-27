@@ -3,6 +3,23 @@
 MCP server pre aplikáciu **Náš nový dom** – umožňuje spravovať nákupný zoznam (miestnosti → položky → varianty) priamo z Claude Code.
 Samostatný Node/TypeScript balík (nie je súčasťou root pnpm workspace ani root lintu).
 
+## Inštalácia pre rodinu (Claude Desktop, bez terminálu)
+
+1. Nainštaluj si **Claude Desktop** zo stránky https://claude.ai/download a prihlás sa.
+2. Stiahni si súbor **`new-home.mcpb`** (pošle ti ho Vlado).
+3. Dvakrát naň klikni – otvorí sa Claude Desktop s ponukou na inštaláciu rozšírenia **Náš nový dom**.
+   (Ak sa neotvorí: v Claude Desktop choď do **Nastavenia → Rozšírenia** a súbor tam nainštaluj / pretiahni.)
+4. Vyplň **svoj vlastný** e-mail a heslo, ktorými sa prihlasuješ do aplikácie Náš nový dom.
+   Každý používa **svoj** účet – nepožičiavaj si prihlasovacie údaje, aby bolo vidno, kto čo pridal a za čo hlasoval.
+   Pole „Adresa aplikácie“ nechaj tak, ako je.
+5. Hotovo. V novom rozhovore s Claudom môžeš písať napríklad:
+   - „Vypíš mi izby.“
+   - „Čo nám ešte chýba kúpiť do kúpeľne?“
+   - „Porovnaj varianty pre sedačku.“
+   - „Pridaj do kuchyne položku Kávovar za 350 €.“
+
+Heslo sa ukladá bezpečne v systéme (Keychain / Správca poverení). Ak si ho zmeníš v aplikácii, zmeň ho aj v Nastaveniach → Rozšírenia → Náš nový dom.
+
 ## Build
 
 ```bash
@@ -48,6 +65,19 @@ claude mcp add new-home \
 ```
 
 Ladenie: `npm run inspect` (MCP Inspector).
+
+## Pre vývojára: nový balík `.mcpb`
+
+```bash
+cd mcp-server
+npm install          # raz, kvôli dev závislostiam (tsc, mcpb CLI)
+npm run pack:mcpb    # → mcp-server/new-home.mcpb
+```
+
+Skript (`scripts/pack-mcpb.mjs`) zbuilduje `dist/`, overí, že text promptu v `manifest.json` sedí so `src/prompts.ts`,
+v dočasnom `.mcpb-build/` nainštaluje len produkčné závislosti, spustí `mcpb validate` a `mcpb pack`. Vývojové `node_modules` ostanú nedotknuté.
+Pri novej verzii zvýš `version` v `package.json` aj `manifest.json` (musia sa zhodovať). Súbor `.mcpb` sa necommituje.
+Predvolená adresa v balíku je produkcia (`user_config.api_url`); lokálny vývoj cez `.mcp.json` používa `http://localhost:8003`.
 
 ## Nástroje
 

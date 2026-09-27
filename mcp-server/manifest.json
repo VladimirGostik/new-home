@@ -1,0 +1,102 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/mcpb/main/schemas/mcpb-manifest-v0.3.schema.json",
+  "manifest_version": "0.3",
+  "name": "new-home",
+  "display_name": "Náš nový dom",
+  "version": "1.0.0",
+  "description": "Spravuj rodinný nákupný zoznam do nového domu: izby, položky, varianty a porovnanie variantov s odporúčaním.",
+  "long_description": "Rozšírenie prepojí Claude s aplikáciou **Náš nový dom**. Claude vie vypísať izby a položky, pridať novú položku alebo variantu a porovnať varianty položky (cena, parametre, výhody a nevýhody) – porovnanie s odporúčaním uloží do aplikácie, kde ho uvidí celá rodina. Prihlasuješ sa vlastným e-mailom a heslom z aplikácie.",
+  "author": {
+    "name": "Vladimír Gostík"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/dist/index.js"
+      ],
+      "env": {
+        "NEW_HOME_API_URL": "${user_config.api_url}",
+        "NEW_HOME_EMAIL": "${user_config.email}",
+        "NEW_HOME_PASSWORD": "${user_config.password}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "new_home_list_rooms",
+      "description": "Zoznam izieb (a „Celý dom“ pre položky bez izby)."
+    },
+    {
+      "name": "new_home_list_items",
+      "description": "Vypíše a vyhľadá položky podľa izby, názvu alebo stavu."
+    },
+    {
+      "name": "new_home_get_item",
+      "description": "Detail položky s variantmi, hlasmi a uloženým porovnaním."
+    },
+    {
+      "name": "new_home_create_item",
+      "description": "Pridá novú položku do nákupného zoznamu."
+    },
+    {
+      "name": "new_home_add_item_variant",
+      "description": "Pridá k položke novú variantu (konkrétny produkt)."
+    },
+    {
+      "name": "new_home_save_variant_comparison",
+      "description": "Uloží porovnanie variantov s odporúčaním (prepíše predchádzajúce)."
+    }
+  ],
+  "prompts": [
+    {
+      "name": "compare_item_variants",
+      "description": "Porovná všetky varianty položky a uloží odporúčanie do aplikácie.",
+      "arguments": [
+        "item"
+      ],
+      "text": "Porovnaj varianty položky „${arguments.item}\" v aplikácii Náš nový dom a ulož porovnanie.\n\nPostup:\n1. Zavolaj `new_home_get_item` s item=\"${arguments.item}\". Ak názov nie je jednoznačný, použi `new_home_list_items` (search) a opýtaj sa ma, ktorú položku myslím.\n2. Ak má položka menej ako 2 varianty, zastav sa a povedz mi to (porovnanie sa nedá uložiť). Ak už existuje porovnanie a nie je zastarané (is_stale=false), opýtaj sa, či ho mám prepísať.\n3. Porovnaj VŠETKY varianty: cena za kus aj spolu za množstvo položky, pomer cena/výkon, kľúčové parametre (rozmery, materiál, záruka, dodanie, dostupnosť), výhody a nevýhody. Ak majú varianty odkazy a máš webové nástroje, otvor ich a over parametre a aktuálne ceny; neoverené údaje jasne označ.\n4. Napíš porovnanie po slovensky v Markdowne: krátky úvod, tabuľka (varianta | cena/ks | spolu | hlavné parametre), Výhody / Nevýhody pre každú variantu, aktuálne hlasy rodiny a na konci sekcia „## Odporúčanie\" s JEDNOU odporúčanou variantou a zdôvodnením (plus alternatívu, kedy dáva zmysel).\n5. Ulož ho cez `new_home_save_variant_comparison` a stručne mi zhrň odporúčanie."
+    }
+  ],
+  "keywords": [
+    "nákupný zoznam",
+    "dom",
+    "rodina",
+    "shopping list"
+  ],
+  "license": "UNLICENSED",
+  "compatibility": {
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
+    "runtimes": {
+      "node": ">=20.0.0"
+    }
+  },
+  "user_config": {
+    "api_url": {
+      "type": "string",
+      "title": "Adresa aplikácie",
+      "description": "Adresa aplikácie Náš nový dom. Zvyčajne ju netreba meniť.",
+      "default": "https://new-home-production-prxbss.laravel.cloud",
+      "required": false
+    },
+    "email": {
+      "type": "string",
+      "title": "E-mail",
+      "description": "Tvoj e-mail, ktorým sa prihlasuješ do aplikácie (každý svoj vlastný účet).",
+      "required": true
+    },
+    "password": {
+      "type": "string",
+      "title": "Heslo",
+      "description": "Tvoje heslo do aplikácie. Uloží sa bezpečne v systéme.",
+      "required": true,
+      "sensitive": true
+    }
+  }
+}

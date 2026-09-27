@@ -43,3 +43,5 @@ CLAUDE.md
 # Standalone MCP server (own package, built separately)
 /mcp-server/node_modules
 /mcp-server/dist
+/mcp-server/.mcpb-build
+/mcp-server/*.mcpb
