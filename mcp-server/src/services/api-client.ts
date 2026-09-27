@@ -221,7 +221,10 @@ export class NewHomeApiClient {
             case 422:
                 return new ApiError(`Validation failed (${body.message ?? "invalid input"}):\n${formatValidationErrors(body)}\nFix the listed fields and try again.`, status);
             case 429:
-                return new ApiError(`Too many requests. ${this.retryAfterHint(response)}Wait a moment and retry later.`, status);
+                return new ApiError(
+                    `Too many requests (photo downloads are limited to 30 per minute). ${this.retryAfterHint(response)}Wait a moment and retry later; do not retry in a loop.`,
+                    status,
+                );
             default:
                 if (status >= 500) {
                     return new ApiError(`The app returned a server error (HTTP ${status}) for ${path}. Check the Laravel logs (storage/logs) or try again.`, status);

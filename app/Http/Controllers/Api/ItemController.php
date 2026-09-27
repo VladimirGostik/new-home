@@ -9,6 +9,7 @@ use App\Data\ItemDetailData;
 use App\Data\ItemListItemData;
 use App\Data\ItemVariantComparisonData;
 use App\Data\SaveItemVariantComparisonData;
+use App\Data\UpdatePhotoFromUrlData;
 use App\Http\Controllers\Controller;
 use App\Models\Item;
 use App\Services\ItemService;
@@ -103,5 +104,19 @@ final class ItemController extends Controller
         $item = $this->itemService->saveVariantComparison($item, $data);
 
         return response()->json(ItemVariantComparisonData::fromItem($item));
+    }
+
+    #[Authorize('update', 'item')]
+    #[Endpoint('Set item photo from URL', 'Downloads an image from a URL and sets it as the item photo. Fails if the item has a selected variant, since its photo is mirrored from the variant.')]
+    #[UrlParam('item', 'string', 'The UUID of the item.', example: '0195d123-0000-7000-0000-000000000001')]
+    #[Response(null, 422, 'Validation error, download failed, or item has a selected variant')]
+    #[Response(null, 401, 'Unauthenticated')]
+    #[Response(null, 403, 'Unauthorized')]
+    #[Response(null, 404, 'Item not found')]
+    public function updatePhoto(UpdatePhotoFromUrlData $data, Item $item): JsonResponse
+    {
+        $item = $this->itemService->replacePhotoFromUrl($item, $data->photo_url);
+
+        return response()->json(ItemListItemData::fromModel($item));
     }
 }

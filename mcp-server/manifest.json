@@ -3,9 +3,9 @@
   "manifest_version": "0.3",
   "name": "new-home",
   "display_name": "Náš nový dom",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Spravuj rodinný nákupný zoznam do nového domu: izby, položky, varianty a porovnanie variantov s odporúčaním.",
-  "long_description": "Rozšírenie prepojí Claude s aplikáciou **Náš nový dom**. Claude vie vypísať izby a položky, pridať novú položku alebo variantu a porovnať varianty položky (cena, parametre, výhody a nevýhody) – porovnanie s odporúčaním uloží do aplikácie, kde ho uvidí celá rodina. Prihlasuješ sa vlastným e-mailom a heslom z aplikácie.",
+  "long_description": "Rozšírenie prepojí Claude s aplikáciou **Náš nový dom**. Claude vie vypísať izby a položky, pridať novú položku alebo variantu (aj s fotkou z odkazu na obrázok z e-shopu) a porovnať varianty položky (cena, parametre, výhody a nevýhody) – porovnanie s odporúčaním uloží do aplikácie, kde ho uvidí celá rodina. Prihlasuješ sa vlastným e-mailom a heslom z aplikácie.",
   "author": {
     "name": "Vladimír Gostík"
   },
@@ -39,15 +39,19 @@
     },
     {
       "name": "new_home_create_item",
-      "description": "Pridá novú položku do nákupného zoznamu."
+      "description": "Pridá novú položku do nákupného zoznamu (voliteľne s fotkou z odkazu na obrázok)."
     },
     {
       "name": "new_home_add_item_variant",
-      "description": "Pridá k položke novú variantu (konkrétny produkt)."
+      "description": "Pridá k položke novú variantu (konkrétny produkt, voliteľne s fotkou)."
     },
     {
       "name": "new_home_save_variant_comparison",
       "description": "Uloží porovnanie variantov s odporúčaním (prepíše predchádzajúce)."
+    },
+    {
+      "name": "new_home_set_photo",
+      "description": "Nastaví fotku položky alebo varianty z priameho odkazu na obrázok."
     }
   ],
   "prompts": [

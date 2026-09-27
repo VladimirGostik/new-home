@@ -17,6 +17,7 @@ Samostatný Node/TypeScript balík (nie je súčasťou root pnpm workspace ani r
    - „Čo nám ešte chýba kúpiť do kúpeľne?“
    - „Porovnaj varianty pre sedačku.“
    - „Pridaj do kuchyne položku Kávovar za 350 €.“
+   - „K variante KIVIK pri sedačke daj fotku z tohto odkazu: https://…/kivik.jpg“
 
 Heslo sa ukladá bezpečne v systéme (Keychain / Správca poverení). Ak si ho zmeníš v aplikácii, zmeň ho aj v Nastaveniach → Rozšírenia → Náš nový dom.
 
@@ -89,10 +90,12 @@ Predvolená adresa v balíku je produkcia (`user_config.api_url`); lokálny výv
 | `new_home_create_item`             | nová položka (miestnosť názvom alebo id, ceny v EUR)                  |
 | `new_home_add_item_variant`        | nová varianta k položke                                               |
 | `new_home_save_variant_comparison` | uloží (prepíše) porovnanie variantov v Markdowne                      |
+| `new_home_set_photo`               | nastaví fotku položky alebo varianty z priameho odkazu na obrázok     |
 
 Prompt `compare_item_variants` (argument: názov alebo id položky) prevedie Clauda celým porovnaním – načíta varianty, porovná ich (aj cez odkazy do obchodov), napíše odporúčanie po slovensky a uloží ho do aplikácie.
 
-Fotky sa cez MCP nenahrávajú; hlasovanie a výber varianty prebiehajú v aplikácii.
+Fotky sa pridávajú **odkazom na obrázok** (`photo_url` pri vytváraní položky/varianty alebo `new_home_set_photo`) – musí to byť priamy odkaz na obrázok (jpg/png/webp, napr. hlavný obrázok produktu z e-shopu), nie odkaz na stránku produktu. Aplikácia si obrázok stiahne sama.
+Ak má položka už vybranú variantu, fotka položky sa berie z nej – vtedy treba fotku nastaviť na variante. Hlasovanie a výber varianty prebiehajú v aplikácii.
 
 ## Príklady
 
@@ -101,3 +104,4 @@ Fotky sa cez MCP nenahrávajú; hlasovanie a výber varianty prebiehajú v aplik
 - „K sedačke pridaj variantu IKEA KIVIK za 799 € s odkazom https://www.ikea.com/sk/…“
 - „Porovnaj varianty sedačky a ulož odporúčanie.“ (alebo `/mcp__new-home__compare_item_variants Sedačka`)
 - „Koľko ešte minieme za všetko plánované v Celom dome?“
+- „Pridaj variantu z tohto odkazu do e-shopu a zober z neho aj fotku.“ (Claude si zo stránky vytiahne obrázok)

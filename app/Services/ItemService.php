@@ -17,30 +17,39 @@ final readonly class ItemService
 {
     public function __construct(
         private TemporaryUploadService $uploads,
+        private RemoteImageDownloader $remoteImages,
     ) {}
 
     public function create(CreateItemData $data): Item
     {
-        return DB::transaction(function () use ($data): Item {
-            /** @var Item $item */
-            $item = Item::create([
-                'name' => $data->name,
-                'note' => $data->note,
-                'room_id' => $data->room_id,
-                'unit_price' => $data->unit_price,
-                'quantity' => $data->quantity,
-                'url' => $data->url,
-                'assigned_user_id' => $data->assigned_user_id,
-                'status' => $data->status,
-                'priority' => $data->priority,
-            ]);
+        $image = $data->photo_url !== null ? $this->remoteImages->download($data->photo_url) : null;
 
-            if ($data->photo_uuid !== null) {
-                $this->uploads->moveToModel($item, 'photo', $data->photo_uuid);
-            }
+        try {
+            return DB::transaction(function () use ($data, $image): Item {
+                /** @var Item $item */
+                $item = Item::create([
+                    'name' => $data->name,
+                    'note' => $data->note,
+                    'room_id' => $data->room_id,
+                    'unit_price' => $data->unit_price,
+                    'quantity' => $data->quantity,
+                    'url' => $data->url,
+                    'assigned_user_id' => $data->assigned_user_id,
+                    'status' => $data->status,
+                    'priority' => $data->priority,
+                ]);
 
-            return $item->fresh(['media']);
-        });
+                if ($data->photo_uuid !== null) {
+                    $this->uploads->moveToModel($item, 'photo', $data->photo_uuid);
+                }
+
+                $image?->attachTo($item, 'photo');
+
+                return $item->fresh(['media']);
+            });
+        } finally {
+            $image?->discard();
+        }
     }
 
     public function update(Item $item, UpdateItemData $data): Item
@@ -76,6 +85,27 @@ final readonly class ItemService
 
             return $item->fresh(['media']);
         });
+    }
+
+    public function replacePhotoFromUrl(Item $item, string $url): Item
+    {
+        if ($item->selected_variant_id !== null) {
+            throw ValidationException::withMessages([
+                'photo_url' => [__('app.photo_url_item_has_selected_variant')],
+            ]);
+        }
+
+        $image = $this->remoteImages->download($url);
+
+        try {
+            return DB::transaction(function () use ($item, $image): Item {
+                $image->attachTo($item, 'photo');
+
+                return $item->fresh(['media']);
+            });
+        } finally {
+            $image->discard();
+        }
     }
 
     public function toggleStatus(Item $item): Item

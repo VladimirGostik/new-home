@@ -62,6 +62,14 @@ final class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute(5)->by($key);
         });
+
+        RateLimiter::for('remote-image', function (Request $request): Limit {
+            if (! $request->filled('photo_url')) {
+                return Limit::none();
+            }
+
+            return Limit::perMinute(30)->by($request->user()?->id ?: get_client_ip());
+        });
     }
 
     private function loadJsonTranslations(): void

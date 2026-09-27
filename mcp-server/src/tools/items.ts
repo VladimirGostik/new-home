@@ -5,7 +5,7 @@ import type { NewHomeApiClient } from "../services/api-client.js";
 import { formatPrice, itemDetailMarkdown, itemLine, toolError, toolResult } from "../services/format.js";
 import { resolveItemId, resolveRoom, searchItemsLocally } from "../services/resolvers.js";
 import type { Item, ItemDetail, Paginated } from "../types.js";
-import { itemRefSchema, priceSchema, responseFormatSchema, urlSchema } from "./schemas.js";
+import { itemRefSchema, photoUrlSchema, priceSchema, responseFormatSchema, urlSchema } from "./schemas.js";
 
 const roomSchema = z
     .string()
@@ -123,7 +123,7 @@ Returns: { item: {...}, variants: [{ id, name, unit_price, url, vote_count, vote
             description: `Add a new item to the family shopping list. Every call creates a NEW item — check with new_home_list_items (search) first if it might already exist, to avoid duplicates.
 
 Only name is required. room accepts a room name or id (omit or "${WHOLE_HOUSE_FILTER}" = "${WHOLE_HOUSE_LABEL}", no room). Prices are EUR numbers per piece (e.g. 1299.99); total = unit_price × quantity is computed by the app.
-Photos cannot be uploaded through this tool.
+Optional photo_url: a DIRECT image URL (jpg/png/webp, e.g. the shop's og:image) — the app downloads it; a failed download returns a validation error on photo_url.
 
 Returns the created item: { id, name, room_name, unit_price, quantity, total_price, status, priority, ... }`,
             inputSchema: z
@@ -134,6 +134,7 @@ Returns the created item: { id, name, room_name, unit_price, quantity, total_pri
                     unit_price: priceSchema.optional(),
                     quantity: z.number().int().min(1).max(9999).default(1).describe("How many pieces (default 1)."),
                     url: urlSchema.optional(),
+                    photo_url: photoUrlSchema.optional(),
                     assigned_user_id: z.string().uuid().optional().describe("UUID of the family member responsible for buying it (optional)."),
                     status: z.enum(ITEM_STATUSES).default("planned").describe("planned (default) or bought."),
                     priority: z.enum(ITEM_PRIORITIES).default("medium").describe("low | medium (default) | high."),
@@ -150,7 +151,11 @@ Returns the created item: { id, name, room_name, unit_price, quantity, total_pri
                     room_id = ref.kind === "room" ? ref.room.id : undefined;
                 }
                 const created = await client.post<Item>("/items", { ...fields, room_id });
-                return toolResult(response_format, { item: created }, () => `Položka vytvorená:\n\n${itemLine(created)}`);
+                return toolResult(
+                    response_format,
+                    { item: created },
+                    () => `Položka vytvorená:\n\n${itemLine(created)}${created.photo_url ? `\n\nFotka: ${created.photo_url}` : ""}`,
+                );
             } catch (error) {
                 return toolError(error);
             }

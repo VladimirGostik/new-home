@@ -94,16 +94,17 @@ export function itemDetailMarkdown(detail: ItemDetail): string {
     if (item.assigned_user_name) lines.push(`- **Zodpovedný:** ${item.assigned_user_name}`);
     if (item.url) lines.push(`- **Odkaz:** ${item.url}`);
     if (item.note) lines.push(`- **Poznámka:** ${item.note}`);
+    if (item.photo_url) lines.push(`- **Fotka:** ${item.photo_url}`);
     lines.push(`- **Vybraná varianta:** ${item.selected_variant_name ?? "zatiaľ žiadna"}`);
 
     lines.push("", `## Varianty (${variants.length})`, "");
     if (variants.length === 0) {
         lines.push("Zatiaľ žiadne varianty. Pridaj ich cez new_home_add_item_variant.");
     } else {
-        lines.push("| Varianta | Cena/ks | Hlasy | Hlasovali | Vybraná | Odkaz | ID |", "|---|---|---|---|---|---|---|");
+        lines.push("| Varianta | Cena/ks | Hlasy | Hlasovali | Vybraná | Odkaz | Fotka | ID |", "|---|---|---|---|---|---|---|---|");
         for (const v of variants) {
             lines.push(
-                `| ${escapeCell(v.name)} | ${variantPriceCell(v, item.quantity)} | ${v.vote_count}${v.is_my_vote ? " (aj môj)" : ""} | ${escapeCell(v.voter_names.join(", ") || "—")} | ${v.is_selected ? "✅" : ""} | ${v.url ?? "—"} | \`${v.id}\` |`,
+                `| ${escapeCell(v.name)} | ${variantPriceCell(v, item.quantity)} | ${v.vote_count}${v.is_my_vote ? " (aj môj)" : ""} | ${escapeCell(v.voter_names.join(", ") || "—")} | ${v.is_selected ? "✅" : ""} | ${v.url ?? "—"} | ${v.photo_url ? `[foto](${v.photo_url})` : "—"} | \`${v.id}\` |`,
             );
         }
     }

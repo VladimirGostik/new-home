@@ -4,7 +4,7 @@ import type { NewHomeApiClient } from "../services/api-client.js";
 import { formatPrice, toolError, toolResult } from "../services/format.js";
 import { resolveItemId } from "../services/resolvers.js";
 import type { ItemVariant, VariantComparison } from "../types.js";
-import { itemRefSchema, priceSchema, responseFormatSchema, urlSchema } from "./schemas.js";
+import { itemRefSchema, photoUrlSchema, priceSchema, responseFormatSchema, urlSchema } from "./schemas.js";
 
 export const COMPARISON_MAX_LENGTH = 20_000;
 
@@ -16,7 +16,8 @@ export function registerVariantTools(server: McpServer, client: NewHomeApiClient
             description: `Add a candidate variant (a concrete product option, e.g. a specific sofa model from a shop) to an existing item. The family then votes on variants in the app.
 Every call creates a NEW variant — check existing variants with new_home_get_item first to avoid duplicates.
 
-Voting and selecting the final variant happen in the app (not via this server). Photos cannot be uploaded here.
+Voting and selecting the final variant happen in the app (not via this server).
+Optional photo_url: a DIRECT image URL (jpg/png/webp, e.g. the shop's og:image), not the product page — the app downloads it.
 Adding a variant marks an existing variant comparison as stale.
 
 Returns the created variant: { id, name, unit_price, url, vote_count, voter_names, is_my_vote, is_selected }`,
@@ -26,6 +27,7 @@ Returns the created variant: { id, name, unit_price, url, vote_count, voter_name
                     name: z.string().trim().min(1).max(255).describe("Variant name, e.g. 'IKEA KIVIK 3-miestna, sivá'."),
                     unit_price: priceSchema.optional(),
                     url: urlSchema.optional(),
+                    photo_url: photoUrlSchema.optional(),
                     response_format: responseFormatSchema,
                 })
                 .strict(),
@@ -39,7 +41,7 @@ Returns the created variant: { id, name, unit_price, url, vote_count, voter_name
                     response_format,
                     { item_id: id, variant },
                     () =>
-                        `Varianta pridaná: **${variant.name}** · ${formatPrice(variant.unit_price)}${variant.url ? ` · ${variant.url}` : ""} — id \`${variant.id}\``,
+                        `Varianta pridaná: **${variant.name}** · ${formatPrice(variant.unit_price)}${variant.url ? ` · ${variant.url}` : ""}${variant.photo_url ? ` · fotka: ${variant.photo_url}` : ""} — id \`${variant.id}\``,
                 );
             } catch (error) {
                 return toolError(error);

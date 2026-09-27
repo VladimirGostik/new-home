@@ -35,6 +35,7 @@ final class CreateItemData extends Data
         public readonly ItemStatus $status = ItemStatus::Planned,
         public readonly ItemPriority $priority = ItemPriority::Medium,
         public readonly ?string $photo_uuid = null,
+        public readonly ?string $photo_url = null,
     ) {}
 
     /** @return array<string, mixed> */
@@ -43,6 +44,7 @@ final class CreateItemData extends Data
         return [
             'unit_price' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'photo_uuid' => ['nullable', 'string', 'uuid', new OwnedTemporaryMedia],
+            'photo_url' => ['nullable', 'string', 'url:http,https', 'max:2048', 'prohibits:photo_uuid'],
         ];
     }
 }

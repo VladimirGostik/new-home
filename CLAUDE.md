@@ -21,8 +21,8 @@ profile: role-only
 
 ## Deployment Status
 
-- **Deployed to production:** no
-- **Last verified:** 2026-09-26
+- **Deployed to production:** yes (Laravel Cloud: https://new-home-production-prxbss.laravel.cloud)
+- **Last verified:** 2026-09-27
 
 ## Local ports
 

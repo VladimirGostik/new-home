@@ -14,29 +14,38 @@ final readonly class ItemVariantService
 {
     public function __construct(
         private TemporaryUploadService $uploads,
+        private RemoteImageDownloader $remoteImages,
     ) {}
 
     public function create(Item $item, CreateItemVariantData $data): ItemVariant
     {
-        return DB::transaction(function () use ($item, $data): ItemVariant {
-            /** @var ItemVariant $variant */
-            $variant = $item->variants()->create([
-                'name' => $data->name,
-                'unit_price' => $data->unit_price,
-                'url' => $data->url,
-            ]);
+        $image = $data->photo_url !== null ? $this->remoteImages->download($data->photo_url) : null;
 
-            if ($data->photo_uuid !== null) {
-                $this->uploads->moveToModel($variant, 'photo', $data->photo_uuid);
-            }
+        try {
+            return DB::transaction(function () use ($item, $data, $image): ItemVariant {
+                /** @var ItemVariant $variant */
+                $variant = $item->variants()->create([
+                    'name' => $data->name,
+                    'unit_price' => $data->unit_price,
+                    'url' => $data->url,
+                ]);
 
-            $this->markComparisonStale($item);
+                if ($data->photo_uuid !== null) {
+                    $this->uploads->moveToModel($variant, 'photo', $data->photo_uuid);
+                }
 
-            /** @var ItemVariant $variant */
-            $variant = $variant->fresh(['media']);
+                $image?->attachTo($variant, 'photo');
 
-            return $variant;
-        });
+                $this->markComparisonStale($item);
+
+                /** @var ItemVariant $variant */
+                $variant = $variant->fresh(['media']);
+
+                return $variant;
+            });
+        } finally {
+            $image?->discard();
+        }
     }
 
     public function update(ItemVariant $variant, UpdateItemVariantData $data): ItemVariant
@@ -69,6 +78,33 @@ final readonly class ItemVariantService
 
             return $variant;
         });
+    }
+
+    public function replacePhotoFromUrl(ItemVariant $variant, string $url): ItemVariant
+    {
+        $image = $this->remoteImages->download($url);
+
+        try {
+            return DB::transaction(function () use ($variant, $image): ItemVariant {
+                $image->attachTo($variant, 'photo');
+
+                /** @var ItemVariant $variant */
+                $variant = $variant->fresh(['media', 'item']);
+
+                /** @var Item $item */
+                $item = $variant->item;
+
+                if ($item->selected_variant_id === $variant->id) {
+                    $this->mirrorOntoItem($item, $variant);
+                }
+
+                $this->markComparisonStale($item);
+
+                return $variant;
+            });
+        } finally {
+            $image->discard();
+        }
     }
 
     public function delete(ItemVariant $variant): void

@@ -21,4 +21,14 @@ export const priceSchema = z
     .max(99_999_999.99)
     .describe("Price per piece in EUR as a plain number, e.g. 249.9 (not cents, no currency symbol).");
 
+export const photoUrlSchema = z
+    .string()
+    .trim()
+    .url()
+    .max(2048)
+    .refine((value) => /^https?:\/\//i.test(value), "photo_url must start with http:// or https://")
+    .describe(
+        "DIRECT image URL (jpg/png/webp) that the app downloads and stores, e.g. the product image from the shop page (its og:image meta tag or the main gallery <img src>). NOT the product page URL — that belongs in `url`.",
+    );
+
 export const urlSchema = z.string().trim().url().max(2048).describe("Product/shop URL (must be a valid http(s) URL).");

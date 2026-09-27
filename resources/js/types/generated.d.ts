@@ -53,12 +53,14 @@ readonly assigned_user_id: string | null,
 readonly status: App.Enums.ItemStatus,
 readonly priority: App.Enums.ItemPriority,
 readonly photo_uuid: string | null,
+readonly photo_url: string | null,
 };
 export type CreateItemVariantData = {
 readonly name: string,
 readonly unit_price: number | null,
 readonly url: string | null,
 readonly photo_uuid: string | null,
+readonly photo_url: string | null,
 };
 export type CreateRoleData = {
 readonly name: string,
