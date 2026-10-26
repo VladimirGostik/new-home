@@ -25,11 +25,12 @@ final class NavigationTest extends TestCase
                 ->where('navigation.0.key', 'dashboard')
                 ->where('navigation.1.key', 'items.index')
                 ->where('navigation.2.key', 'items.mine')
-                ->where('navigation.3.key', 'rooms.index')
-                ->where('navigation.4.key', 'group:settings')
-                ->has('navigation.4.children', 2)
-                ->where('navigation.4.children.0.key', 'profile.show')
-                ->where('navigation.4.children.1.key', 'media.index'),
+                ->where('navigation.3.key', 'expenses.index')
+                ->where('navigation.4.key', 'rooms.index')
+                ->where('navigation.5.key', 'group:settings')
+                ->has('navigation.5.children', 2)
+                ->where('navigation.5.children.0.key', 'profile.show')
+                ->where('navigation.5.children.1.key', 'media.index'),
             );
     }
 
@@ -41,11 +42,11 @@ final class NavigationTest extends TestCase
 
         $this->withoutVite()->actingAs($admin)->get('/')
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->has('navigation', 5)
-                ->where('navigation.4.children.1.key', 'users.index')
-                ->where('navigation.4.children.2.key', 'roles.index')
-                ->where('navigation.4.children.3.key', 'audit-logs.index')
-                ->where('navigation.4.children.4.key', 'media.index'),
+                ->has('navigation', 6)
+                ->where('navigation.5.children.1.key', 'users.index')
+                ->where('navigation.5.children.2.key', 'roles.index')
+                ->where('navigation.5.children.3.key', 'audit-logs.index')
+                ->where('navigation.5.children.4.key', 'media.index'),
             );
     }
 }

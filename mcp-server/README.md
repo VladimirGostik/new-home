@@ -101,6 +101,11 @@ Predvolená adresa v balíku je produkcia (`user_config.api_url`); lokálny výv
 | `new_home_unselect_variant`        | zruší výber varianty (cena, odkaz a fotka položky sa vymažú)                     |
 | `new_home_save_variant_comparison` | uloží (prepíše) porovnanie variantov v Markdowne                                 |
 | `new_home_set_photo`               | nastaví fotku položky alebo varianty z priameho odkazu na obrázok                |
+| `new_home_add_payment`             | zaznamená platbu (záloha, doplatok) k položke; pri preplatení vráti upozornenie  |
+| `new_home_list_payments`           | platby položky + zaplatené / zostáva / stav platby                               |
+| `new_home_delete_payment`          | natrvalo zmaže platbu alebo výdavok – **len po potvrdení** používateľom          |
+| `new_home_add_expense`             | vlastný výdavok mimo položiek (napr. notár)                                      |
+| `new_home_list_expenses`           | Výdavky (platby + vlastné) s filtrom mesiac/typ/hľadanie a súčtami               |
 
 **Viac miestností a desatinné množstvá:** jedna položka (jedna cena za jednotku) môže byť rozdelená do viacerých miestností, každá s vlastným množstvom – napr. dlažba 24,90 €/m²: Kúpeľňa hore 12,5 m² + Kúpeľňa dole 8 m² + Celý dom 2 m² (rezerva). Cena sa počíta za každú miestnosť zvlášť (zaokrúhlená na centy) a sčíta. `new_home_set_item_rooms` vždy nahrádza celý zoznam, takže pri pridaní miestnosti Claude najprv načíta aktuálne rozdelenie.
 

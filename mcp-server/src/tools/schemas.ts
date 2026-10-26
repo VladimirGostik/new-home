@@ -85,3 +85,26 @@ export const variantIdSchema = z
     .trim()
     .uuid()
     .describe("Exact variant UUID (from new_home_get_item). Names are not accepted for destructive actions.");
+
+export const amountSchema = z
+    .number()
+    .gt(0)
+    .max(99_999_999.99)
+    .refine(hasAtMostTwoDecimals, "amount may have at most 2 decimal places")
+    .describe("Amount in EUR as a plain number greater than 0 with up to 2 decimals, e.g. 2000 or 149.9 (not cents, no currency symbol).");
+
+export const paidAtSchema = z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "paid_at must be YYYY-MM-DD")
+    .refine((value) => {
+        const date = new Date(`${value}T00:00:00Z`);
+        return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+    }, "paid_at must be a real calendar date (YYYY-MM-DD)")
+    .describe("Date of the payment as YYYY-MM-DD. The app rejects dates in the future.");
+
+export const expenseIdSchema = z
+    .string()
+    .trim()
+    .uuid()
+    .describe("Exact payment/expense UUID (from new_home_list_payments / new_home_list_expenses). Names are not accepted for destructive actions.");

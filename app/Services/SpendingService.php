@@ -134,6 +134,7 @@ final readonly class SpendingService
     private function baseQuery(Builder $query): QueryBuilder
     {
         $bought = ItemStatus::Bought->value;
+        $paidShare = $this->paidShareSql();
 
         // Clone: the caller's own builder must not inherit this reshaped select.
         return DB::table('item_allocations')
@@ -143,7 +144,21 @@ final readonly class SpendingService
             ->selectRaw('COUNT(DISTINCT CASE WHEN items.status = ? THEN items.id END) AS bought_count', [$bought])
             ->selectRaw('COUNT(DISTINCT CASE WHEN items.unit_price IS NULL THEN items.id END) AS unpriced_count')
             ->selectRaw('COALESCE(SUM(ROUND(items.unit_price * item_allocations.quantity, 2)), 0) AS total')
-            ->selectRaw('COALESCE(SUM(CASE WHEN items.status = ? THEN ROUND(items.unit_price * item_allocations.quantity, 2) END), 0) AS bought_total', [$bought]);
+            ->selectRaw('COALESCE(SUM(CASE WHEN items.status = ? THEN ROUND(items.unit_price * item_allocations.quantity, 2) END), 0) AS bought_total', [$bought])
+            // @phpstan-ignore argument.type (SQL fragment is built from constants only)
+            ->selectRaw("COALESCE(SUM({$paidShare}), 0) AS paid_total")
+            // @phpstan-ignore argument.type (SQL fragment is built from constants only)
+            ->selectRaw("COALESCE(SUM(ROUND(items.unit_price * item_allocations.quantity, 2) - {$paidShare}), 0) AS to_pay_total");
+    }
+
+    // Capped at item price, pro-rated by line total; NULL for unpriced items.
+    private function paidShareSql(): string
+    {
+        $paid = Item::paidAmountSql();
+        $total = Item::totalPriceSql('sibling');
+        $capped = "(CASE WHEN {$paid} < {$total} THEN {$paid} ELSE {$total} END)";
+
+        return "(CASE WHEN items.unit_price IS NULL THEN NULL WHEN {$total} <= 0 THEN 0 ELSE ROUND({$capped} * ROUND(items.unit_price * item_allocations.quantity, 2) / {$total}, 2) END)";
     }
 
     private function summaryFromRow(?object $row): SpendSummaryData
@@ -166,6 +181,8 @@ final readonly class SpendingService
             total: $total,
             bought_total: $bought,
             remaining_total: round($total - $bought, 2),
+            paid_total: round((float) ($values['paid_total'] ?? 0), 2),
+            to_pay_total: round((float) ($values['to_pay_total'] ?? 0), 2),
         );
     }
 }

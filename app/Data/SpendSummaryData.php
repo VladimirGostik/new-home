@@ -21,5 +21,7 @@ final class SpendSummaryData extends Data
         public readonly float $total = 0.0,
         public readonly float $bought_total = 0.0,
         public readonly float $remaining_total = 0.0,
+        public readonly float $paid_total = 0.0,
+        public readonly float $to_pay_total = 0.0,
     ) {}
 }

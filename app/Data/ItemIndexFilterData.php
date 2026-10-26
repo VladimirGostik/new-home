@@ -16,6 +16,7 @@ final class ItemIndexFilterData extends Data
         public readonly ?string $assignee = null,
         public readonly ?string $status = null,
         public readonly ?string $priority = null,
+        public readonly ?string $payment_status = null,
         public readonly ?int $per_page = null,
     ) {}
 }

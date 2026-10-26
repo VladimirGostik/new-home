@@ -6,6 +6,7 @@ import { ChevronLeftIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
 import ItemSummaryCard from '@/Components/Items/ItemSummaryCard.vue';
 import ItemVariantsSection from '@/Components/Items/ItemVariantsSection.vue';
 import ItemVariantComparison from '@/Components/Items/ItemVariantComparison.vue';
+import ItemPaymentsSection from '@/Components/Items/ItemPaymentsSection.vue';
 import ItemVariantFormModal from '@/Components/Items/ItemVariantFormModal.vue';
 import ConfirmDeleteModal from '@/Components/ConfirmDeleteModal.vue';
 import { useDeleteConfirm } from '@/Composables/useDeleteConfirm';
@@ -15,6 +16,7 @@ const props = defineProps<{
     item: App.Data.ItemListItemData;
     variants: App.Data.ItemVariantListItemData[];
     comparison: App.Data.ItemVariantComparisonData | null;
+    payments: App.Data.ExpenseData[];
 }>();
 
 const { t } = useI18n();
@@ -85,6 +87,8 @@ const deleteConfirm = useDeleteConfirm<App.Data.ItemVariantListItemData>({
                 />
 
                 <ItemVariantComparison v-if="comparison" :comparison="comparison" />
+
+                <ItemPaymentsSection :item="item" :payments="payments" />
             </div>
         </div>
     </div>

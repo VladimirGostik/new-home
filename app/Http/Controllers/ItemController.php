@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Data\CreateItemData;
+use App\Data\ExpenseData;
 use App\Data\ItemListItemData;
 use App\Data\ItemVariantComparisonData;
 use App\Data\ItemVariantListItemData;
 use App\Data\UpdateItemData;
+use App\Enums\ItemPaymentStatus;
 use App\Enums\ItemPriority;
 use App\Enums\ItemStatus;
 use App\Models\Item;
@@ -43,6 +45,7 @@ final class ItemController extends Controller
         $baseQuery = Item::query()
             ->with(['allocations.room:id,name,sort_order', 'assignedUser', 'media', 'selectedVariant:id,name'])
             ->withCount('variants')
+            ->withSum('payments', 'amount')
             ->when(! $request->filled('sort'), fn (Builder $query) => $query->shoppingOrder());
 
         $items = QueryBuilder::for($baseQuery)
@@ -74,6 +77,14 @@ final class ItemController extends Controller
                 }),
                 AllowedFilter::dynamic('status'),
                 AllowedFilter::dynamic('priority'),
+                AllowedFilter::callbackClean('payment_status', function (Builder $query, mixed $value): void {
+                    $status = is_string($value) ? ItemPaymentStatus::tryFrom($value) : null;
+
+                    if ($status !== null) {
+                        /** @var Builder<Item> $query */
+                        $query->paymentStatusFilter($status);
+                    }
+                }),
             )
             ->allowedSorts('name', 'unit_price', 'priority', 'status', 'created_at')
             ->paginate($request->integer('per_page', 25))
@@ -97,6 +108,7 @@ final class ItemController extends Controller
             'items' => (clone $query)
                 ->with(['allocations.room:id,name,sort_order', 'assignedUser', 'media', 'selectedVariant:id,name'])
                 ->withCount('variants')
+                ->withSum('payments', 'amount')
                 ->shoppingOrder()
                 ->get()
                 ->map(fn (Item $item) => ItemListItemData::fromModel($item))
@@ -147,6 +159,7 @@ final class ItemController extends Controller
                 ->map(fn (ItemVariant $variant) => ItemVariantListItemData::fromModel($variant, $item->selected_variant_id, $request->user()?->id))
                 ->all(),
             'comparison' => ItemVariantComparisonData::fromItem($item),
+            'payments' => ExpenseData::forItem($item),
         ]);
     }
 
@@ -216,6 +229,7 @@ final class ItemController extends Controller
      *     users: array<int, array{id: string, name: string}>,
      *     statuses: array<int, array{id: string, name: string}>,
      *     priorities: array<int, array{id: string, name: string}>,
+     *     payment_statuses: array<int, array{id: string, name: string}>,
      * }
      */
     private function filterOptions(): array
@@ -225,6 +239,7 @@ final class ItemController extends Controller
             'users' => $this->userOptions(),
             'statuses' => ItemStatus::options(),
             'priorities' => ItemPriority::options(),
+            'payment_statuses' => ItemPaymentStatus::options(),
         ];
     }
 }

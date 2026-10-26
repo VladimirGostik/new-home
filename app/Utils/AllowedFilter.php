@@ -54,9 +54,9 @@ final class AllowedFilter extends \Spatie\QueryBuilder\AllowedFilter
         ?string $internalName = null,
         ?string $arrayValueDelimiter = null,
     ): static {
-        $likeOperator = static::defaultLikeOperator();
+        $likeOperator = self::defaultLikeOperator();
 
-        return new static(
+        return new self(
             $name,
             new class($columns, $likeOperator) implements Filter
             {
@@ -99,9 +99,9 @@ final class AllowedFilter extends \Spatie\QueryBuilder\AllowedFilter
         ?string $arrayValueDelimiter = null,
     ): static {
         $column = $internalName ?? $name;
-        $likeOperator = static::defaultLikeOperator();
+        $likeOperator = self::defaultLikeOperator();
 
-        return new static(
+        return new self(
             $name,
             new class($column, $likeOperator) implements Filter
             {
@@ -134,11 +134,11 @@ final class AllowedFilter extends \Spatie\QueryBuilder\AllowedFilter
         ?string $internalName = null,
         ?string $arrayValueDelimiter = null,
     ): static {
-        return new static(
+        return new self(
             $name,
             new SymbolOperatorFilter(
                 column: $internalName ?? $name,
-                likeOperator: static::defaultLikeOperator(),
+                likeOperator: self::defaultLikeOperator(),
             ),
             $internalName,
         );
@@ -150,7 +150,7 @@ final class AllowedFilter extends \Spatie\QueryBuilder\AllowedFilter
         string $column = 'id',
         ?string $arrayValueDelimiter = null,
     ): static {
-        return new static(
+        return new self(
             $name,
             new class($relation, $column) implements Filter
             {
@@ -201,7 +201,7 @@ final class AllowedFilter extends \Spatie\QueryBuilder\AllowedFilter
         $internalName = null,
         ?string $arrayValueDelimiter = null,
     ): static {
-        return new static(
+        return new self(
             $name,
             new class($callback) implements Filter
             {
@@ -352,7 +352,7 @@ final class AllowedFilter extends \Spatie\QueryBuilder\AllowedFilter
         return $this;
     }
 
-    private static function defaultLikeOperator(): string
+    public static function defaultLikeOperator(): string
     {
         return config('database.default') === 'pgsql' ? 'ilike' : 'like';
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\ItemVariantController;
 use App\Http\Controllers\LanguageController;
@@ -111,6 +112,15 @@ Route::middleware('auth')->group(function (): void {
     Route::delete('/items/{item}/vote', [ItemVariantController::class, 'retractVote'])->name('items.vote.destroy');
     Route::patch('/items/{item}/status', [ItemController::class, 'toggleStatus'])->name('items.toggle-status');
     Route::delete('/items/{item}', [ItemController::class, 'destroy'])->name('items.destroy');
+
+    Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+    Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
+    Route::middleware([HandlePrecognitiveRequests::class])->group(function (): void {
+        Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
+        Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->name('expenses.update');
+        Route::post('/items/{item}/payments', [ExpenseController::class, 'storePayment'])->name('items.payments.store');
+    });
+
     Route::middleware([HandlePrecognitiveRequests::class])->group(function (): void {
         Route::post('/items', [ItemController::class, 'store'])->name('items.store');
         Route::put('/items/{item}', [ItemController::class, 'update'])->name('items.update');

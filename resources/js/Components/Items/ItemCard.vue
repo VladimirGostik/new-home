@@ -73,6 +73,19 @@ const variantChip = computed(() => {
     return null;
 });
 
+const paymentChip = computed(() => {
+    if (props.item.payment_status === 'partial') {
+        return {
+            label: t('payment_deposit', { amount: formatEur(props.item.paid_total) }),
+            class: 'bg-oak-soft text-oak-ink',
+        };
+    }
+    if (props.item.payment_status === 'paid') {
+        return { label: t('payment_paid'), class: 'bg-olive-soft text-olive-deep' };
+    }
+    return null;
+});
+
 const price = computed(() => {
     if (props.item.unit_price === null) return null;
     if (props.contextRoomId) {
@@ -120,7 +133,7 @@ const price = computed(() => {
                         }}</span>
                     </span>
                     <span
-                        v-if="meta || roomChip || variantChip"
+                        v-if="meta || roomChip || variantChip || paymentChip"
                         class="flex items-center gap-1.5 truncate text-[13px] text-muted"
                     >
                         <span v-if="meta" class="truncate">{{ meta }}</span>
@@ -135,6 +148,12 @@ const price = computed(() => {
                             class="inline-flex h-5.5 shrink-0 items-center rounded-full px-2 text-xs"
                             :class="variantChip.class"
                             >{{ variantChip.label }}</span
+                        >
+                        <span
+                            v-if="paymentChip"
+                            class="inline-flex h-5.5 shrink-0 items-center rounded-full px-2 text-xs"
+                            :class="paymentChip.class"
+                            >{{ paymentChip.label }}</span
                         >
                     </span>
                     <span v-if="price" class="text-[15px] font-semibold tabular-nums">{{ price }}</span>

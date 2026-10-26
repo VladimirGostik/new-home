@@ -10,6 +10,7 @@ use App\Data\PatchItemData;
 use App\Data\SaveItemVariantComparisonData;
 use App\Data\UpdateItemData;
 use App\Enums\ItemStatus;
+use App\Models\Expense;
 use App\Models\Item;
 use App\Models\ItemAllocation;
 use App\Models\ItemVariant;
@@ -226,6 +227,10 @@ final readonly class ItemService
             // Deleted explicitly (not left to the FK cascade) so LogsActivity records each removal.
             $item->allocations()->get()->each(fn (ItemAllocation $allocation) => $allocation->delete());
             $item->variants()->get()->each(fn (ItemVariant $variant) => $variant->delete());
+            $item->payments()->get()->each(fn (Expense $expense) => $expense->update([
+                'item_id' => null,
+                'title' => $item->name,
+            ]));
             $item->delete();
         });
     }

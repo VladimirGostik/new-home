@@ -1,5 +1,5 @@
 export const SERVER_NAME = "new-home-mcp-server";
-export const SERVER_VERSION = "1.2.0";
+export const SERVER_VERSION = "1.3.0";
 
 /** Default base URL of the local docker app. */
 export const DEFAULT_API_URL = "http://localhost:8003";
@@ -14,6 +14,17 @@ export const REQUEST_TIMEOUT_MS = 20_000;
 export const ITEM_STATUSES = ["planned", "bought"] as const;
 /** Mirrors App\Enums\ItemPriority. */
 export const ITEM_PRIORITIES = ["low", "medium", "high"] as const;
+
+/** Mirrors App\Enums\ItemPaymentStatus. */
+export const PAYMENT_STATUSES = ["unpaid", "partial", "paid"] as const;
+/** Mirrors App\Enums\ExpenseType. */
+export const EXPENSE_TYPES = ["item", "other"] as const;
+
+export const PAYMENT_STATUS_LABELS: Record<string, string> = {
+    unpaid: "Nezaplatené",
+    partial: "Čiastočne zaplatené",
+    paid: "Zaplatené",
+};
 
 export const STATUS_LABELS: Record<string, string> = {
     planned: "Plánované",

@@ -12,6 +12,7 @@ use App\Data\PatchItemData;
 use App\Data\SaveItemVariantComparisonData;
 use App\Data\SyncItemAllocationsData;
 use App\Data\UpdatePhotoFromUrlData;
+use App\Enums\ItemPaymentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Item;
 use App\Services\ItemService;
@@ -42,6 +43,7 @@ final class ItemController extends Controller
     #[QueryParam('filter[search]', 'string', 'Search by name.', required: false, example: 'milk')]
     #[QueryParam('filter[room]', 'string', 'Filter by items having an allocation in the room UUID, or "house" for a Celý dom allocation.', required: false, example: 'house')]
     #[QueryParam('filter[status]', 'string', 'Filter by exact status.', required: false, example: 'planned')]
+    #[QueryParam('filter[payment_status]', 'string', 'Filter by payment status: unpaid, partial or paid. Unknown values are ignored.', required: false, example: 'partial')]
     #[QueryParam('sort', 'string', 'Sort field. Prefix with `-` for descending. Allowed: name, created_at, priority, status.', required: false, example: '-created_at')]
     #[QueryParam('per_page', 'integer', 'Number of results per page (default 25, clamped 1-100).', required: false, example: 25)]
     #[Response(null, 401, 'Unauthenticated')]
@@ -51,6 +53,7 @@ final class ItemController extends Controller
         $baseQuery = Item::query()
             ->with(['allocations.room:id,name,sort_order', 'assignedUser', 'media', 'selectedVariant:id,name'])
             ->withCount('variants')
+            ->withSum('payments', 'amount')
             ->when(! $request->filled('sort'), fn (Builder $query) => $query->shoppingOrder());
 
         $perPage = min(max($request->integer('per_page', 25), 1), 100);
@@ -63,6 +66,14 @@ final class ItemController extends Controller
                     $query->inRoomFilter(is_string($value) ? $value : '');
                 }),
                 AllowedFilter::dynamic('status'),
+                AllowedFilter::callbackClean('payment_status', function (Builder $query, mixed $value): void {
+                    $status = is_string($value) ? ItemPaymentStatus::tryFrom($value) : null;
+
+                    if ($status !== null) {
+                        /** @var Builder<Item> $query */
+                        $query->paymentStatusFilter($status);
+                    }
+                }),
             )
             ->allowedSorts('name', 'created_at', 'priority', 'status')
             ->paginate($perPage)

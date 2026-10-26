@@ -8,13 +8,14 @@ Laravel 13
 
 ## Modules
 
-- **items** — Item model + service; shopping-list items with optional variants, voting, AI comparison
+- **items** — Item model + service; shopping-list items with optional variants, voting, AI comparison; computed paid_total / remaining / payment_status / overpaid (from expenses), `payment_status` filter
 - **item-allocations** — ItemAllocation model; item quantity per room (decimal) with cascade/restrict constraints, per-line rounding
 - **item-variants** — ItemVariant model + service; variant proposals with voting and API partial-update
 - **rooms** — Room model; household sections (kitchen, bedroom, etc.), delete merges allocations to whole house
+- **expenses** — Expense model + ExpenseService; single ledger: item payments are expenses with item_id, standalone expenses have a title; month-by-month Výdavky page; item delete keeps expenses as standalone with item name snapshot as title
 - **auth** — Web login (session), API login (Sanctum token) with email+IP rate limit
-- **api** — JSON API routes via Sanctum authentication + precognition (PATCH/DELETE items/variants, PUT allocations)
-- **mcp-server** — Standalone Node.js/TypeScript MCP server (stdio transport); 14 tools for rooms/items/variants/allocations/photos/comparison (v1.2.0)
+- **api** — JSON API routes via Sanctum authentication + precognition (PATCH/DELETE items/variants, PUT allocations, item payments + expenses endpoints)
+- **mcp-server** — Standalone Node.js/TypeScript MCP server (stdio transport); 19 tools for rooms/items/variants/allocations/photos/comparison/payments/expenses (v1.3.0)
 
 ## Auth profile
 

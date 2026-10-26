@@ -11,6 +11,7 @@ import {
     HomeModernIcon,
     ListBulletIcon,
     Squares2X2Icon,
+    BanknotesIcon,
 } from '@heroicons/vue/24/outline';
 
 const ICONS: Record<string, object> = {
@@ -26,6 +27,7 @@ const ICONS: Record<string, object> = {
     HomeModernIcon,
     ListBulletIcon,
     Squares2X2Icon,
+    BanknotesIcon,
 };
 
 export function resolveIcon(name: string): object {

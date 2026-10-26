@@ -1,6 +1,6 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { CHARACTER_LIMIT, PRIORITY_LABELS, ResponseFormat, STATUS_LABELS, WHOLE_HOUSE_LABEL } from "../constants.js";
-import type { Item, ItemAllocation, ItemDetail, ItemVariant, Room } from "../types.js";
+import { CHARACTER_LIMIT, PAYMENT_STATUS_LABELS, PRIORITY_LABELS, ResponseFormat, STATUS_LABELS, WHOLE_HOUSE_LABEL } from "../constants.js";
+import type { Expense, ExpenseResult, ExpenseTotals, Item, ItemAllocation, ItemDetail, ItemPaymentSummary, ItemVariant, Room } from "../types.js";
 import { ApiError } from "./api-client.js";
 
 const eur = new Intl.NumberFormat("sk-SK", { style: "currency", currency: "EUR" });
@@ -87,6 +87,17 @@ function variantsLabel(count: number): string {
     return count >= 2 && count <= 4 ? `${count} varianty` : `${count} variantov`;
 }
 
+function paymentBadgeOf(item: Item): string | null {
+    if (!item.payment_status || item.payment_status === "unpaid") return null;
+    const paid = formatPrice(item.paid_total ?? 0);
+    if (item.payment_status === "paid") {
+        return item.overpaid ? `zaplatené (${paid}, preplatené o ${formatPrice(item.overpaid)})` : `zaplatené (${paid})`;
+    }
+    return item.remaining === null || item.remaining === undefined
+        ? `záloha ${paid}`
+        : `záloha ${paid}, zostáva ${formatPrice(item.remaining)}`;
+}
+
 /**
  * One list line. With focusRoomId (list filtered by a room; null = Celý dom) the share
  * of that room is appended for multi-room items.
@@ -110,6 +121,8 @@ export function itemLine(item: Item, focusRoomId?: string | null): string {
         STATUS_LABELS[item.status] ?? item.status,
         `priorita ${PRIORITY_LABELS[item.priority] ?? item.priority}`,
     );
+    const paymentBadge = paymentBadgeOf(item);
+    if (paymentBadge) parts.push(paymentBadge);
     if (item.variants_count > 0) {
         parts.push(`${variantsLabel(item.variants_count)}${item.selected_variant_name ? `, vybraná: ${item.selected_variant_name}` : ""}`);
     }
@@ -157,6 +170,13 @@ export function itemDetailMarkdown(detail: ItemDetail): string {
         lines.push(`| **Spolu** | **${formatQuantity(item.quantity)}** | **${formatPrice(item.total_price)}** |`);
     }
 
+    if (item.payment_status) {
+        lines.push(
+            `- **Platby:** ${PAYMENT_STATUS_LABELS[item.payment_status] ?? item.payment_status} · **Zaplatené:** ${formatPrice(item.paid_total ?? 0)} · **Zostáva:** ${formatPrice(item.remaining ?? null)}` +
+                (item.overpaid ? ` · **Preplatené o:** ${formatPrice(item.overpaid)}` : ""),
+        );
+    }
+
     lines.push("", `## Varianty (${variants.length})`, "");
     if (variants.length === 0) {
         lines.push("Zatiaľ žiadne varianty. Pridaj ich cez new_home_add_item_variant.");
@@ -166,6 +186,15 @@ export function itemDetailMarkdown(detail: ItemDetail): string {
             lines.push(
                 `| ${escapeCell(v.name)} | ${variantPriceCell(v, item)} | ${v.vote_count}${v.is_my_vote ? " (aj môj)" : ""} | ${escapeCell(v.voter_names.join(", ") || "—")} | ${v.is_selected ? "✅" : ""} | ${v.url ?? "—"} | ${v.photo_url ? `[foto](${v.photo_url})` : "—"} | \`${v.id}\` |`,
             );
+        }
+    }
+
+    if (detail.payments) {
+        lines.push("", `## Platby (${detail.payments.length})`, "");
+        if (detail.payments.length === 0) {
+            lines.push("Zatiaľ žiadne platby. Pridaj ich cez new_home_add_payment.");
+        } else {
+            lines.push(...detail.payments.map(expenseLine));
         }
     }
 
@@ -194,4 +223,39 @@ export function itemResultMarkdown(title: string, item: Item): string {
     }
     if (item.photo_url) lines.push("", `Fotka: ${item.photo_url}`);
     return lines.join("\n");
+}
+
+function formatDate(date: string): string {
+    const [year, month, day] = date.split("-");
+    return year && month && day ? `${Number(day)}. ${Number(month)}. ${year}` : date;
+}
+
+export function expenseLine(expense: Expense): string {
+    const parts = [formatDate(expense.paid_at), `**${formatPrice(expense.amount)}**`, expense.display_name];
+    parts.push(expense.type === "item" ? "platba za položku" : "vlastný výdavok");
+    if (expense.note) parts.push(`poznámka: ${expense.note}`);
+    if (expense.created_by_name) parts.push(`zadal: ${expense.created_by_name}`);
+    return `- ${parts.join(" · ")} — id \`${expense.id}\``;
+}
+
+export function paymentSummaryMarkdown(summary: ItemPaymentSummary): string {
+    const parts = [
+        `Cena: ${formatPrice(summary.total_price)}`,
+        `zaplatené: ${formatPrice(summary.paid_total)}`,
+        `zostáva: ${formatPrice(summary.remaining)}`,
+        PAYMENT_STATUS_LABELS[summary.payment_status] ?? summary.payment_status,
+    ];
+    if (summary.overpaid > 0) parts.push(`preplatené o ${formatPrice(summary.overpaid)}`);
+    return parts.join(" · ");
+}
+
+export function expenseResultMarkdown(title: string, result: ExpenseResult): string {
+    const lines = [`${title}:`, "", expenseLine(result.expense)];
+    if (result.item_summary) lines.push("", `Položka: ${paymentSummaryMarkdown(result.item_summary)}`);
+    if (result.warning) lines.push("", `Upozornenie: ${result.warning}`);
+    return lines.join("\n");
+}
+
+export function expenseTotalsMarkdown(totals: ExpenseTotals): string {
+    return `Spolu ${formatPrice(totals.total)} (platby za položky ${formatPrice(totals.items_total)} · vlastné výdavky ${formatPrice(totals.manual_total)}) v ${totals.count} záznamoch`;
 }

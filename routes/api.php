@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\ItemController;
 use App\Http\Controllers\Api\ItemVariantController;
 use App\Http\Controllers\Api\ProfileController;
@@ -50,4 +51,14 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::delete('/items/{item}/variants/{variant}', [ItemVariantController::class, 'destroy'])->scopeBindings()->name('api.items.variants.destroy');
     Route::post('/items/{item}/variants/{variant}/select', [ItemVariantController::class, 'select'])->scopeBindings()->name('api.items.variants.select');
     Route::delete('/items/{item}/selected-variant', [ItemVariantController::class, 'unselect'])->name('api.items.variants.unselect');
+
+    Route::get('/expenses', [ExpenseController::class, 'index'])->name('api.expenses.index');
+    Route::get('/expenses/{expense}', [ExpenseController::class, 'show'])->name('api.expenses.show');
+    Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('api.expenses.destroy');
+    Route::get('/items/{item}/payments', [ExpenseController::class, 'itemIndex'])->name('api.items.payments.index');
+    Route::middleware([HandlePrecognitiveRequests::class])->group(function (): void {
+        Route::post('/expenses', [ExpenseController::class, 'store'])->name('api.expenses.store');
+        Route::match(['put', 'patch'], '/expenses/{expense}', [ExpenseController::class, 'update'])->name('api.expenses.update');
+        Route::post('/items/{item}/payments', [ExpenseController::class, 'itemStore'])->name('api.items.payments.store');
+    });
 });

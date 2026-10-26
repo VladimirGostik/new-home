@@ -70,6 +70,7 @@ final class RoomController extends Controller
             'items' => (clone $items)
                 ->with(['allocations.room:id,name,sort_order', 'assignedUser', 'media', 'selectedVariant:id,name'])
                 ->withCount('variants')
+                ->withSum('payments', 'amount')
                 ->shoppingOrder()
                 ->get()
                 ->map(fn (Item $item) => ItemListItemData::fromModel($item))

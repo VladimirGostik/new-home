@@ -9,6 +9,7 @@ import {
     ListBulletIcon,
     Squares2X2Icon,
     PlusIcon,
+    BanknotesIcon,
 } from '@heroicons/vue/24/outline';
 import type { ToastPayload } from '@/Composables/useToast';
 import BrandMark from '@/Components/BrandMark.vue';
@@ -35,6 +36,7 @@ const TAB_ICONS: Record<string, object> = {
     'items.index': ListBulletIcon,
     'items.mine': UserIcon,
     'rooms.index': Squares2X2Icon,
+    'expenses.index': BanknotesIcon,
 };
 
 const TAB_LABELS: Record<string, string> = {
@@ -42,6 +44,7 @@ const TAB_LABELS: Record<string, string> = {
     'items.index': 'items',
     'items.mine': 'my_items_short',
     'rooms.index': 'rooms',
+    'expenses.index': 'expenses',
 };
 
 const initials = computed(() => {

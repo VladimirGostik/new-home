@@ -9,6 +9,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { SERVER_NAME, SERVER_VERSION } from "./constants.js";
 import { registerPrompts } from "./prompts.js";
 import { NewHomeApiClient } from "./services/api-client.js";
+import { registerExpenseTools } from "./tools/expenses.js";
 import { registerItemTools } from "./tools/items.js";
 import { registerPhotoTools } from "./tools/photos.js";
 import { registerRoomTools } from "./tools/rooms.js";
@@ -23,9 +24,10 @@ async function main(): Promise<void> {
                 "Tools for the family shopping list of a new house (Room → Item → Variant). The family speaks Slovak; answer in Slovak. " +
                 "Items without a room belong to 'Celý dom'. An item can be split across several rooms with DECIMAL quantities (e.g. tiles: Kúpeľňa hore 12.5 m² + Kúpeľňa dole 8 m²): " +
                 "create with rooms[] or change with new_home_set_item_rooms (full replacement — read current rows first). Prices are EUR per unit; totals are per-room line totals summed. " +
-                "Destructive tools (new_home_delete_item, new_home_delete_variant) need an explicit user confirmation naming the exact item/variant first; select/unselect a variant only when the user asks. " +
+                "Destructive tools (new_home_delete_item, new_home_delete_variant, new_home_delete_payment) need an explicit user confirmation naming the exact item/variant/payment (amount and date) first; select/unselect a variant only when the user asks. " +
                 "To compare variants, use the compare_item_variants workflow: " +
                 "new_home_get_item → analyse all variants → new_home_save_variant_comparison. " +
+                "Payments (záloha, doplatok) are recorded per item with new_home_add_payment and also appear in the Výdavky ledger (new_home_list_expenses), which additionally holds standalone expenses added with new_home_add_expense; items expose paid_total, remaining and payment_status. " +
                 "Photos are added by DIRECT image URL (photo_url, e.g. the shop's og:image), never by the product page URL; use new_home_set_photo for existing items/variants. " +
                 "If an item already has a selected variant, its photo comes from that variant — set the photo on the variant.",
         },
@@ -35,6 +37,7 @@ async function main(): Promise<void> {
     registerItemTools(server, client);
     registerVariantTools(server, client);
     registerPhotoTools(server, client);
+    registerExpenseTools(server, client);
     registerPrompts(server);
 
     await server.connect(new StdioServerTransport());

@@ -24,7 +24,7 @@ watch(
     (rooms) => (ordered.value = [...rooms]),
 );
 
-const house = computed(() => props.wholeHouse ?? { items_count: 0, bought_count: 0, unpriced_count: 0, total: 0, bought_total: 0, remaining_total: 0 });
+const house = computed(() => props.wholeHouse ?? { items_count: 0, bought_count: 0, unpriced_count: 0, total: 0, bought_total: 0, remaining_total: 0, paid_total: 0, to_pay_total: 0 });
 
 function move(index: number, delta: number) {
     const target = index + delta;
@@ -117,6 +117,9 @@ const deleteConfirm = useDeleteConfirm<App.Data.RoomListItemData>({
                     <span class="text-[13px] text-muted">{{ t('items_count', room.summary.items_count) }} · {{ t('bought_percent', { n: boughtPercent(room.summary) }) }}</span>
                     <span class="font-display text-xl font-semibold tabular-nums">{{ formatEur(room.summary.total) }}</span>
                 </div>
+                <p class="text-[13px] text-muted tabular-nums">
+                    {{ t('paid_and_to_pay', { paid: formatEur(room.summary.paid_total), toPay: formatEur(room.summary.to_pay_total) }) }}
+                </p>
                 <ProgressBar
                     tone="olive"
                     :value="boughtPercent(room.summary)"

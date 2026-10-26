@@ -4,6 +4,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 import { ChevronLeftIcon, PencilSquareIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import ItemCard from '@/Components/Items/ItemCard.vue';
+import PaymentTotals from '@/Components/PaymentTotals.vue';
 import ProgressBar from '@/Components/ProgressBar.vue';
 import { boughtPercent, formatEur } from '@/Composables/useMoney';
 
@@ -62,6 +63,7 @@ const addHref = computed(
             <p v-if="room.summary.unpriced_count > 0" class="text-[13px] text-oak-deep">
                 {{ t('unpriced_not_counted', room.summary.unpriced_count) }}
             </p>
+            <PaymentTotals :summary="room.summary" tone="light" />
         </section>
 
         <div class="flex items-baseline justify-between">

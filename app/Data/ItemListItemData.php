@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data;
 
+use App\Enums\ItemPaymentStatus;
 use App\Models\Item;
 use App\Models\ItemAllocation;
 use Spatie\LaravelData\Data;
@@ -35,7 +36,25 @@ final class ItemListItemData extends Data
         public readonly ?string $selected_variant_id,
         public readonly ?string $selected_variant_name,
         public readonly int $variants_count,
+        public readonly float $paid_total,
+        public readonly ?float $remaining,
+        public readonly ItemPaymentStatus $payment_status,
+        public readonly float $overpaid,
     ) {}
+
+    public static function totalPriceOf(Item $item): ?float
+    {
+        if ($item->unit_price === null) {
+            return null;
+        }
+
+        $item->loadMissing('allocations');
+        $unitPrice = (float) $item->unit_price;
+
+        return round($item->allocations->sum(
+            fn (ItemAllocation $allocation): float => ItemAllocationData::fromModel($allocation, $unitPrice)->line_total ?? 0.0,
+        ), 2);
+    }
 
     public static function fromModel(Item $item): self
     {
@@ -43,6 +62,10 @@ final class ItemListItemData extends Data
 
         if (! array_key_exists('variants_count', $item->getAttributes())) {
             $item->loadCount('variants');
+        }
+
+        if (! array_key_exists('payments_sum_amount', $item->getAttributes())) {
+            $item->loadSum('payments', 'amount');
         }
 
         $unitPrice = $item->unit_price !== null ? (float) $item->unit_price : null;
@@ -65,9 +88,9 @@ final class ItemListItemData extends Data
 
         $quantity = round((float) $allocations->sum(fn (ItemAllocation $allocation): float => (float) $allocation->quantity), 2);
 
-        $totalPrice = $unitPrice !== null
-            ? round(array_sum(array_map(fn (ItemAllocationData $allocation): float => $allocation->line_total ?? 0.0, $allocationData)), 2)
-            : null;
+        $totalPrice = self::totalPriceOf($item);
+
+        $payment = ItemPaymentSummaryData::fromAmounts($totalPrice, (float) ($item->payments_sum_amount ?? 0));
 
         $firstAllocation = $allocations->first();
 
@@ -100,6 +123,10 @@ final class ItemListItemData extends Data
             selected_variant_id: $item->selected_variant_id,
             selected_variant_name: $item->selectedVariant?->name,
             variants_count: (int) $item->variants_count,
+            paid_total: $payment->paid_total,
+            remaining: $payment->remaining,
+            payment_status: $payment->payment_status,
+            overpaid: $payment->overpaid,
         );
     }
 }

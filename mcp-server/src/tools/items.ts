@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { ITEM_PRIORITIES, ITEM_SORTS, ITEM_STATUSES, WHOLE_HOUSE_FILTER, WHOLE_HOUSE_LABEL } from "../constants.js";
+import { ITEM_PRIORITIES, ITEM_SORTS, ITEM_STATUSES, PAYMENT_STATUSES, WHOLE_HOUSE_FILTER, WHOLE_HOUSE_LABEL } from "../constants.js";
 import type { NewHomeApiClient } from "../services/api-client.js";
 import { allocationsOf, formatPrice, itemDetailMarkdown, itemLine, itemResultMarkdown, roomsSummary, toolError, toolResult } from "../services/format.js";
 import { type AllocationInput, loadItemDetail, resolveAllocations, resolveItemId, resolveRoom, searchItemsLocally } from "../services/resolvers.js";
@@ -25,10 +25,11 @@ export function registerItemTools(server: McpServer, client: NewHomeApiClient): 
             title: "List shopping-list items",
             description: `List/search items on the family shopping list ("Náš nový dom"), paginated.
 
-Filters (all optional, combinable): room (id, name or "${WHOLE_HOUSE_FILTER}" — matches items that have a share in that room; an item can be split across several rooms), search (substring of the item name, case/diacritics-insensitive), status (planned = "Plánované", bought = "Kúpené").
+Filters (all optional, combinable): room (id, name or "${WHOLE_HOUSE_FILTER}" — matches items that have a share in that room; an item can be split across several rooms), search (substring of the item name, case/diacritics-insensitive), status (planned = "Plánované", bought = "Kúpené"), payment_status (unpaid = "Nezaplatené", partial = "Čiastočne zaplatené", paid = "Zaplatené").
 Default order is the app's shopping order; use sort to override.
 
-Returns: { total, page, per_page, last_page, has_more, next_page, items: [{ id, name, note, allocations: [{ room_id, room_name, quantity, line_total }], unit_price, quantity, total_price, url, assigned_user_name, status, priority, selected_variant_name, variants_count, ... }] }.
+Returns: { total, page, per_page, last_page, has_more, next_page, items: [{ id, name, note, allocations: [{ room_id, room_name, quantity, line_total }], unit_price, quantity, total_price, url, assigned_user_name, status, priority, selected_variant_name, variants_count, paid_total, remaining, payment_status, overpaid, ... }] }.
+paid_total = Σ recorded payments (real money); remaining = max(total_price − paid_total, 0), null when the item has no price; overpaid = paid beyond the price.
 Prices are EUR numbers. quantity is a DECIMAL total (e.g. 20.5 m²) = Σ allocations; total_price = Σ per-room line totals (round(unit_price × room quantity, 2)). room_name/room_id are legacy (joined names / null for multi-room items) — prefer allocations.
 When filtered by room, the markdown shows that room's share of multi-room items and the page sum counts only that room's shares. If has_more is true, call again with page = next_page.
 
@@ -38,6 +39,7 @@ Use this to find an item's id before new_home_get_item / new_home_add_item_varia
                     room: roomSchema.optional(),
                     search: z.string().trim().max(255).optional().describe("Case-insensitive search in item names, e.g. 'gauč'."),
                     status: z.enum(ITEM_STATUSES).optional().describe("planned = still to buy, bought = already bought."),
+                    payment_status: z.enum(PAYMENT_STATUSES).optional().describe("unpaid = nothing paid, partial = deposit/instalments paid, paid = fully paid."),
                     sort: z.enum(ITEM_SORTS).optional().describe("Sort field; prefix '-' for descending. Omit for the app's default shopping order."),
                     page: z.number().int().min(1).default(1).describe("Page number (1-based)."),
                     per_page: z.number().int().min(1).max(100).default(25).describe("Items per page (1–100, default 25)."),
@@ -46,7 +48,7 @@ Use this to find an item's id before new_home_get_item / new_home_add_item_varia
                 .strict(),
             annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
         },
-        async ({ room, search, status, sort, page, per_page, response_format }) => {
+        async ({ room, search, status, payment_status, sort, page, per_page, response_format }) => {
             try {
                 let roomFilter: string | undefined;
                 let roomLabel: string | undefined;
@@ -58,7 +60,7 @@ Use this to find an item's id before new_home_get_item / new_home_add_item_varia
                     focusRoomId = ref.kind === "house" ? null : ref.room.id;
                 }
 
-                const baseQuery = { "filter[room]": roomFilter, "filter[status]": status, sort };
+                const baseQuery = { "filter[room]": roomFilter, "filter[status]": status, "filter[payment_status]": payment_status, sort };
                 let result = await client.get<Paginated<Item>>("/items", { ...baseQuery, "filter[search]": search, page, per_page });
                 if (search && result.total === 0) {
                     result = await searchItemsLocally(client, baseQuery, search, page, per_page);
@@ -72,12 +74,12 @@ Use this to find an item's id before new_home_get_item / new_home_add_item_varia
                     last_page: result.last_page,
                     has_more: hasMore,
                     next_page: hasMore ? result.current_page + 1 : null,
-                    filters: { room: roomLabel ?? null, search: search ?? null, status: status ?? null },
+                    filters: { room: roomLabel ?? null, search: search ?? null, status: status ?? null, payment_status: payment_status ?? null },
                     items: result.data,
                 };
 
                 return toolResult(response_format, structured, () => {
-                    const filterDesc = [roomLabel && `miestnosť: ${roomLabel}`, search && `hľadanie: "${search}"`, status && `stav: ${status}`]
+                    const filterDesc = [roomLabel && `miestnosť: ${roomLabel}`, search && `hľadanie: "${search}"`, status && `stav: ${status}`, payment_status && `platba: ${payment_status}`]
                         .filter(Boolean)
                         .join(", ");
                     const lines = [`# Položky${filterDesc ? ` (${filterDesc})` : ""}`, ""];
@@ -108,11 +110,11 @@ Use this to find an item's id before new_home_get_item / new_home_add_item_varia
         "new_home_get_item",
         {
             title: "Get item detail",
-            description: `Get full detail of one shopping-list item: item fields, per-room breakdown (allocations: room, decimal quantity, line total), all its variants (price, URL, vote count, who voted, whether it is the selected one) and the saved variant comparison (markdown text, generated_at, is_stale).
+            description: `Get full detail of one shopping-list item: item fields, per-room breakdown (allocations: room, decimal quantity, line total), all its variants (price, URL, vote count, who voted, whether it is the selected one), the saved variant comparison (markdown text, generated_at, is_stale) and the item's payments (deposits/instalments) with paid_total, remaining, payment_status, overpaid.
 
 is_stale = true means variants changed after the comparison was saved — suggest regenerating it with new_home_save_variant_comparison.
 
-Returns: { item: {..., allocations: [{ room_id, room_name, quantity, line_total }]}, variants: [{ id, name, unit_price, url, vote_count, voter_names, is_my_vote, is_selected }], comparison: { text, generated_at, is_stale } | null }`,
+Returns: { item: {..., allocations: [{ room_id, room_name, quantity, line_total }]}, variants: [{ id, name, unit_price, url, vote_count, voter_names, is_my_vote, is_selected }], comparison: { text, generated_at, is_stale } | null, payments: [{ id, amount, paid_at, note, created_by_name }] }`,
             inputSchema: z.object({ item: itemRefSchema, response_format: responseFormatSchema }).strict(),
             annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
         },

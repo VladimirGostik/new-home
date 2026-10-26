@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Concerns\HasUuids;
+use App\Enums\ItemPaymentStatus;
 use App\Enums\ItemPriority;
 use App\Enums\ItemStatus;
 use Database\Factories\ItemFactory;
@@ -27,6 +28,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property ItemPriority $priority
  * @property Carbon|null $variant_comparison_generated_at
  * @property bool $variant_comparison_is_stale
+ * @property float|string|null $payments_sum_amount
  */
 #[Fillable(['name', 'note', 'room_id', 'unit_price', 'quantity', 'url', 'assigned_user_id', 'status', 'priority', 'selected_variant_id', 'variant_comparison', 'variant_comparison_generated_at', 'variant_comparison_is_stale'])]
 final class Item extends Model implements HasMedia
@@ -99,6 +101,44 @@ final class Item extends Model implements HasMedia
         $query->whereHas('allocations', fn (Builder $query) => $query->where('room_id', $value));
     }
 
+    /** @return literal-string */
+    public static function paidAmountSql(): string
+    {
+        return '(SELECT COALESCE(SUM(expenses.amount), 0) FROM expenses WHERE expenses.item_id = items.id)';
+    }
+
+    /**
+     * @param  literal-string  $alias
+     * @return literal-string
+     */
+    public static function totalPriceSql(string $alias): string
+    {
+        return "(SELECT SUM(ROUND(items.unit_price * {$alias}.quantity, 2)) FROM item_allocations {$alias} WHERE {$alias}.item_id = items.id)";
+    }
+
+    /**
+     * Shared with SpendingService via paidAmountSql() / totalPriceSql().
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function paymentStatusFilter(Builder $query, ItemPaymentStatus $status): void
+    {
+        $paid = self::paidAmountSql();
+        $total = self::totalPriceSql('item_allocations');
+
+        match ($status) {
+            ItemPaymentStatus::Unpaid => $query->whereRaw("{$paid} <= 0"),
+            ItemPaymentStatus::Partial => $query->whereRaw("{$paid} > 0")
+                ->where(fn (Builder $query) => $query
+                    ->whereNull('items.unit_price')
+                    ->orWhereRaw("{$paid} < COALESCE({$total}, 0)")),
+            ItemPaymentStatus::Paid => $query->whereNotNull('items.unit_price')
+                ->whereRaw("{$paid} > 0")
+                ->whereRaw("{$paid} >= COALESCE({$total}, 0)"),
+        };
+    }
+
     /** @return HasMany<ItemAllocation, $this> */
     public function allocations(): HasMany
     {
@@ -109,6 +149,12 @@ final class Item extends Model implements HasMedia
     public function assignedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_user_id');
+    }
+
+    /** @return HasMany<Expense, $this> */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Expense::class);
     }
 
     /** @return HasMany<ItemVariant, $this> */

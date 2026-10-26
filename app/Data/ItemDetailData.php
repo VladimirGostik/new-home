@@ -12,11 +12,15 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 #[TypeScript]
 final class ItemDetailData extends Data
 {
-    /** @param list<ItemVariantListItemData> $variants */
+    /**
+     * @param  list<ItemVariantListItemData>  $variants
+     * @param  list<ExpenseData>  $payments
+     */
     public function __construct(
         public readonly ItemListItemData $item,
         public readonly array $variants,
         public readonly ?ItemVariantComparisonData $comparison,
+        public readonly array $payments,
     ) {}
 
     public static function fromModel(Item $item, ?string $currentUserId = null): self
@@ -33,6 +37,7 @@ final class ItemDetailData extends Data
             item: ItemListItemData::fromModel($item),
             variants: $variants,
             comparison: ItemVariantComparisonData::fromItem($item),
+            payments: ExpenseData::forItem($item),
         );
     }
 }

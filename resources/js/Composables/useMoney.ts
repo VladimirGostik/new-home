@@ -11,3 +11,8 @@ export function boughtPercent(summary: Pick<App.Data.SpendSummaryData, 'total' |
     if (summary.total <= 0) return 0;
     return Math.round((summary.bought_total / summary.total) * 100);
 }
+
+export function paidPercent(paid: number, total: number | null): number {
+    if (total === null || total <= 0) return 0;
+    return Math.min(100, Math.round((paid / total) * 100));
+}

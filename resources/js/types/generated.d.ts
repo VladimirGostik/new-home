@@ -86,6 +86,35 @@ readonly unassigned_count: number,
 readonly rooms: App.Data.SpendGroupData[],
 readonly people: App.Data.SpendGroupData[],
 };
+export type ExpenseData = {
+readonly id: string,
+readonly item_id: string | null,
+readonly item_name: string | null,
+readonly title: string | null,
+readonly display_name: string,
+readonly type: App.Enums.ExpenseType,
+readonly amount: number,
+readonly paid_at: string,
+readonly note: string | null,
+readonly created_by_name: string | null,
+readonly created_at: string,
+};
+export type ExpenseIndexFilterData = {
+readonly month: string,
+readonly search: string | null,
+readonly type: App.Enums.ExpenseType | null,
+};
+export type ExpenseResultData = {
+readonly expense: App.Data.ExpenseData,
+readonly item_summary: App.Data.ItemPaymentSummaryData | null,
+readonly warning: string | null,
+};
+export type ExpenseTotalsData = {
+readonly total: number,
+readonly items_total: number,
+readonly manual_total: number,
+readonly count: number,
+};
 export type ItemAllocationData = {
 readonly id: string,
 readonly room_id: string | null,
@@ -101,6 +130,7 @@ export type ItemDetailData = {
 readonly item: App.Data.ItemListItemData,
 readonly variants: App.Data.ItemVariantListItemData[],
 readonly comparison: App.Data.ItemVariantComparisonData | null,
+readonly payments: App.Data.ExpenseData[],
 };
 export type ItemIndexFilterData = {
 readonly search: string | null,
@@ -108,6 +138,7 @@ readonly room: string | null,
 readonly assignee: string | null,
 readonly status: string | null,
 readonly priority: string | null,
+readonly payment_status: string | null,
 readonly per_page: number | null,
 };
 export type ItemListItemData = {
@@ -132,6 +163,21 @@ readonly created_at: string,
 readonly selected_variant_id: string | null,
 readonly selected_variant_name: string | null,
 readonly variants_count: number,
+readonly paid_total: number,
+readonly remaining: number | null,
+readonly payment_status: App.Enums.ItemPaymentStatus,
+readonly overpaid: number,
+};
+export type ItemPaymentSummaryData = {
+readonly total_price: number | null,
+readonly paid_total: number,
+readonly remaining: number | null,
+readonly payment_status: App.Enums.ItemPaymentStatus,
+readonly overpaid: number,
+};
+export type ItemPaymentsData = {
+readonly payments: App.Data.ExpenseData[],
+readonly summary: App.Data.ItemPaymentSummaryData,
 };
 export type ItemVariantComparisonData = {
 readonly text: string,
@@ -216,6 +262,12 @@ readonly password_confirmation: string,
 export type PasswordResetLinkData = {
 readonly email: string,
 };
+export type PatchExpenseData = {
+readonly title: undefined | string,
+readonly amount: undefined | number,
+readonly paid_at: undefined | string,
+readonly note: undefined | string | null,
+};
 export type PatchItemData = {
 readonly name: undefined | string,
 readonly note: undefined | string | null,
@@ -267,6 +319,17 @@ export type RoomOptionData = {
 readonly id: string,
 readonly name: string,
 };
+export type SaveExpenseData = {
+readonly title: string,
+readonly amount: number,
+readonly paid_at: string,
+readonly note: string | null,
+};
+export type SaveItemPaymentData = {
+readonly amount: number,
+readonly paid_at: string,
+readonly note: string | null,
+};
 export type SaveItemVariantComparisonData = {
 readonly text: string,
 };
@@ -282,6 +345,8 @@ readonly unpriced_count: number,
 readonly total: number,
 readonly bought_total: number,
 readonly remaining_total: number,
+readonly paid_total: number,
+readonly to_pay_total: number,
 };
 export type StoreTemporaryUploadData = {
 readonly file: File,
@@ -348,6 +413,8 @@ readonly created_at: string,
 };
 }
 namespace Enums {
+export type ExpenseType = 'item' | 'other';
+export type ItemPaymentStatus = 'unpaid' | 'partial' | 'paid';
 export type ItemPriority = 'low' | 'medium' | 'high';
 export type ItemStatus = 'planned' | 'bought';
 export type SupportedLanguage = 'sk' | 'en';

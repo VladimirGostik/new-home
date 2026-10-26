@@ -9,8 +9,9 @@ const props = withDefaults(
         label: string;
         error?: string | null;
         disabled?: boolean;
+        required?: boolean;
     }>(),
-    { error: null, disabled: false },
+    { error: null, disabled: false, required: false },
 );
 
 const emit = defineEmits<{
@@ -31,7 +32,7 @@ const { text, onFocus, onInput, onBlur } = useDecimalInput(
 </script>
 
 <template>
-    <FormField :label="label" :error="error">
+    <FormField :label="label" :error="error" :required="required">
         <label class="input w-full tabular-nums">
             <input
                 :value="text"
@@ -40,6 +41,7 @@ const { text, onFocus, onInput, onBlur } = useDecimalInput(
                 autocomplete="off"
                 :placeholder="t('no_price')"
                 :disabled="disabled"
+                :aria-required="required ? 'true' : undefined"
                 :aria-invalid="error ? 'true' : undefined"
                 @focus="onFocus"
                 @input="onInput"

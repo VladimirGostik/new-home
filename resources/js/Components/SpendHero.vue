@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ProgressBar from '@/Components/ProgressBar.vue';
+import PaymentTotals from '@/Components/PaymentTotals.vue';
 import { boughtPercent, formatEur } from '@/Composables/useMoney';
 
 const props = defineProps<{
@@ -41,6 +42,7 @@ const percent = computed(() => boughtPercent(props.summary));
                 <span class="text-lg font-semibold text-oak-light tabular-nums">{{ formatEur(summary.bought_total) }}</span>
             </div>
         </div>
+        <PaymentTotals :summary="summary" tone="dark" />
         <slot />
     </section>
 </template>

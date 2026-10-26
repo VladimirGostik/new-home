@@ -14,6 +14,7 @@ export interface ItemFilterOptions {
     users: Option[];
     statuses: Option[];
     priorities: Option[];
+    payment_statuses: Option[];
 }
 
 const props = defineProps<{
@@ -23,7 +24,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-type FilterKey = 'search' | 'room' | 'assignee' | 'status' | 'priority' | 'price';
+type FilterKey = 'search' | 'room' | 'assignee' | 'status' | 'priority' | 'price' | 'payment_status';
 
 const active = computed<Record<string, string>>(() => {
     const raw = (props.filters.filter ?? {}) as Record<string, unknown>;
@@ -93,6 +94,21 @@ function chipClass(key: FilterKey): string {
                 <option value="">{{ t('all_statuses') }}</option>
                 <option
                     v-for="option in options.statuses"
+                    :key="option.id"
+                    :value="option.id"
+                >{{ option.name }}</option>
+            </select>
+
+            <select
+                :value="active.payment_status ?? ''"
+                :aria-label="t('payment_status')"
+                class="select h-9 w-auto shrink-0 rounded-full pr-8 text-sm font-medium"
+                :class="chipClass('payment_status')"
+                @change="onSelect('payment_status', $event)"
+            >
+                <option value="">{{ t('all_payment_statuses') }}</option>
+                <option
+                    v-for="option in options.payment_statuses"
                     :key="option.id"
                     :value="option.id"
                 >{{ option.name }}</option>
