@@ -32,6 +32,25 @@ final class PatchExpenseData extends Data
         ];
     }
 
+    /** @return array<string, string> */
+    public static function attributes(): array
+    {
+        return [
+            'title' => __('app.expense_title'),
+            'amount' => __('app.amount'),
+            'paid_at' => __('app.payment_date'),
+            'note' => __('app.note'),
+        ];
+    }
+
+    /** @return array<string, string> */
+    public static function messages(): array
+    {
+        return [
+            'paid_at.before_or_equal' => __('app.payment_date_future'),
+        ];
+    }
+
     public static function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {

@@ -352,5 +352,7 @@
     "expenses_count": "žiadne výdavky | {n} výdavok | {n} výdavky | {n} výdavkov",
     "delete_expense_title": "Odstrániť výdavok?",
     "delete_expense_text": "Výdavok „{name}“ ({amount}) sa natrvalo odstráni.",
-    "expense_type": "Typ výdavku"
+    "expense_type": "Typ výdavku",
+    "payment_date": "Dátum platby",
+    "payment_date_future": "Dátum platby musí byť dnes alebo skôr."
 }

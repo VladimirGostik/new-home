@@ -108,6 +108,17 @@ final class ItemPaymentApiTest extends TestCase
         $this->postJson("/api/items/{$item->id}/payments", ['amount' => 10, 'paid_at' => today()->toDateString()])->assertCreated();
     }
 
+    public function test_future_paid_at_message_is_localized(): void
+    {
+        $user = $this->userWithPermission('edit items');
+        $user->update(['locale' => 'sk']);
+        Sanctum::actingAs($user);
+        $item = Item::factory()->create();
+
+        $this->postJson("/api/items/{$item->id}/payments", ['amount' => 10, 'paid_at' => today()->addDay()->toDateString()])
+            ->assertJsonValidationErrors(['paid_at' => 'Dátum platby musí byť dnes alebo skôr.']);
+    }
+
     /** @return array<string, array{mixed}> */
     public static function badAmounts(): array
     {

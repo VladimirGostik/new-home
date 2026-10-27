@@ -26,4 +26,22 @@ final class SaveItemPaymentData extends Data
             'paid_at' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
         ];
     }
+
+    /** @return array<string, string> */
+    public static function attributes(): array
+    {
+        return [
+            'amount' => __('app.amount'),
+            'paid_at' => __('app.payment_date'),
+            'note' => __('app.note'),
+        ];
+    }
+
+    /** @return array<string, string> */
+    public static function messages(): array
+    {
+        return [
+            'paid_at.before_or_equal' => __('app.payment_date_future'),
+        ];
+    }
 }
